@@ -1,0 +1,25 @@
+# Node modules
+node_modules/
+
+# Build folders (from backend/admin)
+dist/
+lib/
+
+# Expo cache and logs
+.expo/
+*.jks
+*.p12
+*.keystore
+
+# Secret environment files
+.env
+*.env
+.env.*
+
+# Secret Firebase/Stripe files
+serviceAccountKey.json
+Stripe Keys.txt
+
+# OS files
+.DS_Store
+Thumbs.db
