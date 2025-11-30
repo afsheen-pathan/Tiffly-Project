@@ -1,72 +1,92 @@
 // src/navigation/AppNavigator.tsx
+import React from "react";
+import { View, ActivityIndicator, StyleSheet } from "react-native";
+import { useUserRole } from "../hooks/useUserRole";
+import {
+  CustomerTabNavigator,
+  CustomerTabParamList,
+} from "./CustomerTabNavigator";
+import {
+  ProviderTabNavigator,
+  ProviderTabParamList,
+} from "./ProviderTabNavigator";
+import { PendingProviderTabNavigator } from "./PendingProviderTabNavigator";
+import { OnboardingFormScreen } from "../screens/provider/OnboardingFormScreen";
+import { createStackNavigator } from "@react-navigation/stack";
+import { Text } from "react-native-paper";
+import { NavigatorScreenParams } from "@react-navigation/native";
 
-import React from 'react';
-import { View, ActivityIndicator, StyleSheet } from 'react-native';
-import { useUserRole } from '../hooks/useUserRole';
-import { CustomerTabNavigator } from './CustomerTabNavigator';
-import { ProviderTabNavigator } from './ProviderTabNavigator';
-import { OnboardingFormScreen } from '../screens/provider/OnboardingFormScreen';
-import { PendingApprovalScreen } from '../screens/provider/PendingApprovalScreen';
-import { createStackNavigator } from '@react-navigation/stack';
-import { Text } from 'react-native-paper';
-import { PendingProviderTabNavigator } from './PendingProviderTabNavigator'; 
+export type AppStackParamList = {
+  AppSwitcher: undefined;
 
-// This is the new App Stack, which will contain OTHER navigators
-const AppStack = createStackNavigator();
+  // Main app flows
+  CustomerTab: NavigatorScreenParams<CustomerTabParamList>;
+  ProviderTab: NavigatorScreenParams<ProviderTabParamList>;
+  PendingProviderTab: undefined;
 
-// A simple loading screen
+  // Onboarding
+  OnboardingForm: undefined;
+};
+
+const Stack = createStackNavigator<AppStackParamList>();
+
+// Simple loading indicator
 const LoadingScreen = () => (
-  <View style={styles.container}>
+  <View style={styles.loadingContainer}>
     <ActivityIndicator size="large" />
   </View>
 );
 
-// This is the "brain" component that decides what to show
 const AppSwitcher = () => {
-  // 1. Get the new refetch function
   const { role, providerStatus, loading, refetch } = useUserRole();
 
-  if (loading) {
-    return <LoadingScreen />;
-  }
+  if (loading) return <LoadingScreen />;
 
-  if (role === 'customer') {
+  // -------- CUSTOMER --------
+  if (role === "customer") {
     return <CustomerTabNavigator />;
   }
 
-  if (role === 'provider') {
-    if (providerStatus === 'approved') {
+  // -------- PROVIDER --------
+  if (role === "provider") {
+    if (providerStatus === "approved") {
       return <ProviderTabNavigator />;
-    } else if (providerStatus === 'pending_approval') {
-      // 2. Show the new Pending Tab Navigator
-      return <PendingProviderTabNavigator />; 
-    } else if (providerStatus === 'pending') {
-      // 3. Pass the refetch function as a prop to the form
+    }
+
+    if (
+      providerStatus === "pending_approval" ||
+      providerStatus === "suspended" ||
+      providerStatus === "rejected"
+    ) {
+      return <PendingProviderTabNavigator />;
+    }
+
+    if (providerStatus === "pending") {
       return <OnboardingFormScreen onProfileSubmit={refetch} />;
     }
   }
 
+  // -------- FALLBACK --------
   return (
-    <View style={styles.container}>
-      <Text>Error: User role not found or status unknown.</Text>
+    <View style={styles.loadingContainer}>
+      <Text>Error: User role unknown or missing.</Text>
     </View>
   );
 };
 
-
-// This is the main export now
 export const AppNavigator = () => {
   return (
-    <AppStack.Navigator screenOptions={{ headerShown: false }}>
-      <AppStack.Screen name="AppSwitcher" component={AppSwitcher} />
-    </AppStack.Navigator>
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="AppSwitcher" component={AppSwitcher} />
+    </Stack.Navigator>
   );
 };
 
+// --------------Styling--------------------------
 const styles = StyleSheet.create({
-  container: {
+  loadingContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
 });

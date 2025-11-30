@@ -8,6 +8,7 @@ import path from 'path';
 import fs from 'fs';
 // Use CommonJS require syntax for node-fetch@2
 const fetch = require('node-fetch'); 
+const YOUR_IP = '172.23.8.103'; // <--- PASTE YOUR ACTUAL IP HERE
 
 dotenv.config();
 
@@ -211,8 +212,11 @@ app.post(
         return res.status(400).send({ error: 'Invalid frequency.' });
       }
 
-      const successUrl = process.env.CHECKOUT_SUCCESS_URL || 'https://example.com/success';
-      const cancelUrl = process.env.CHECKOUT_CANCEL_URL || 'https://example.com/cancel';
+      // const successUrl = 'http://localhost:5173/payment-success';
+      // const cancelUrl = process.env.CHECKOUT_CANCEL_URL || 'http://localhost:5173/';
+
+      const successUrl = `http://${YOUR_IP}:5173/payment-success`; 
+      const cancelUrl = `http://${YOUR_IP}:5173/`;
 
       const session = await stripe.checkout.sessions.create({
         line_items: [ {
@@ -359,6 +363,69 @@ app.post('/notify-menu-update', async (req: Request<object, object, NotifyMenuUp
     }
 });
 // --- END NEW ENDPOINT ---
+
+// --- *** NEW: Ratings & Reviews Endpoint *** ---
+
+interface SubmitReviewBody {
+  providerId: string;
+  userId: string;
+  rating: number;
+  reviewText: string;
+}
+
+app.post('/submit-review', async (req: Request<object, object, SubmitReviewBody>, res: Response) => {
+  try {
+    const { providerId, userId, rating, reviewText } = req.body;
+
+    if (!providerId || !userId || !rating) {
+      return res.status(400).send({ error: 'Missing required data' });
+    }
+
+    // 1. Save the new review
+    await db.collection('reviews').add({
+      providerId,
+      userId,
+      rating,
+      reviewText,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+    console.log(`[Reviews] New review added for provider ${providerId}: ${rating} stars`);
+
+    // 2. Recalculate Average Rating
+    const reviewsSnapshot = await db.collection('reviews').where('providerId', '==', providerId).get();
+    
+    let totalRating = 0;
+    let count = 0;
+    
+    reviewsSnapshot.forEach(doc => {
+      const data = doc.data();
+      if (data.rating) {
+        totalRating += data.rating;
+        count++;
+      }
+    });
+
+    const averageRating = count > 0 ? (totalRating / count) : 0;
+    // Round to 1 decimal place (e.g., 4.2)
+    const roundedAverage = Math.round(averageRating * 10) / 10;
+
+    console.log(`[Reviews] New stats for ${providerId}: ${roundedAverage} stars (${count} reviews)`);
+
+    // 3. Update Provider Profile
+    await db.collection('providerProfiles').doc(providerId).update({
+      averageRating: roundedAverage,
+      ratingCount: count,
+    });
+
+    res.status(200).send({ success: true });
+
+  } catch (error) {
+    console.error('❌ Error submitting review:', error);
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    res.status(500).send({ error: `Failed to submit review: ${message}` });
+  }
+});
+// --- *** END NEW ENDPOINT *** ---
 
 
 app.get('/', (_: Request, res: Response) => {

@@ -121,35 +121,55 @@ export const AccountSettingsScreen = () => {
   );
 };
 
-// --- STYLES ---
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 8,
-    backgroundColor: '#f5f5f5',
+    padding: 12,
+    backgroundColor: "#fafafa",
   },
+
   loader: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
+
+  /* CARD DESIGN */
   card: {
-    margin: 8,
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    marginTop: 12,
+    marginHorizontal: 4,
+    paddingBottom: 16,
     elevation: 2,
+
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 3,
   },
+
   input: {
-    marginBottom: 12,
-    backgroundColor: '#f9f9f9',
+    backgroundColor: "#f3f3f3",
+    borderRadius: 8,
+    marginBottom: 10,
   },
+
+  /* ERROR TEXT */
   errorText: {
-    color: 'red',
+    color: "#e53935",
     fontSize: 12,
-    marginLeft: 8,
-    marginTop: -8,
+    marginLeft: 4,
     marginBottom: 8,
+    fontWeight: "500",
   },
+
+  /* SAVE BUTTON */
   saveButton: {
     marginTop: 20,
-    paddingVertical: 4,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: "#e53935",
+    elevation: 2,
   },
 });

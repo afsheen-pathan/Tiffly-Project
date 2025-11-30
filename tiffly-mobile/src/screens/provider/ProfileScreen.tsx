@@ -63,42 +63,73 @@ export const ProfileScreen = () => {
   );
 };
 
-// --- STYLES ---
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: "#fafafa",
   },
+
+  /* ---------- HEADER ---------- */
   header: {
-    backgroundColor: '#fff',
-    padding: 24,
-    alignItems: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    backgroundColor: "#ffffff",
+    paddingVertical: 30,
+    alignItems: "center",
+    borderBottomLeftRadius: 18,
+    borderBottomRightRadius: 18,
+    elevation: 3,
+
+    shadowColor: "#000",
+    shadowOpacity: 0.08,
+    shadowRadius: 3,
+    shadowOffset: { width: 0, height: 2 },
   },
+
   avatar: {
-    marginBottom: 12,
+    backgroundColor: "#e53935",
+    elevation: 4,
   },
+
   emailText: {
-    fontWeight: 'bold',
+    marginTop: 12,
+    fontSize: 18,
+    color: "#222",
+    fontWeight: "700",
   },
+
   statusText: {
-    fontSize: 14,
-    color: 'gray',
     marginTop: 4,
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#777",
   },
+
+  /* ---------- LIST SECTION ---------- */
   listItem: {
-    backgroundColor: '#fff', // White background for list items
-    borderBottomWidth: 1,     // Separator
-    borderBottomColor: '#f0f0f0',
-  },
-  divider: {
-    height: 12, // Use divider as a spacer
-    backgroundColor: 'transparent',
-  },
-  logoutButton: {
-    margin: 20,
+    backgroundColor: "#ffffff",
+    borderRadius: 10,
+    marginHorizontal: 12,
+    marginTop: 10,
     paddingVertical: 4,
-    backgroundColor: '#B00020', // Red color for logout
-  }
+    elevation: 1,
+
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    shadowOffset: { width: 0, height: 1 },
+  },
+
+  divider: {
+    height: 20,
+    backgroundColor: "transparent",
+  },
+
+  /* ---------- LOGOUT BUTTON ---------- */
+  logoutButton: {
+    marginHorizontal: 20,
+    marginVertical: 10,
+    backgroundColor: "#e53935",
+    borderRadius: 10,
+    paddingVertical: 6,
+    elevation: 2,
+  },
 });

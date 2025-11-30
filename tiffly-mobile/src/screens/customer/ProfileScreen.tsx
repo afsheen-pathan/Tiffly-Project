@@ -63,42 +63,63 @@ export const ProfileScreen = () => {
   );
 };
 
-// --- STYLES ---
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: "#fafafa",
   },
+
+  /* HEADER */
   header: {
-    backgroundColor: '#fff',
-    padding: 24,
-    alignItems: 'center',
+    backgroundColor: "#fff",
+    paddingVertical: 32,
+    paddingHorizontal: 20,
+    alignItems: "center",
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    borderBottomColor: "#eee",
+
+    shadowColor: "#000",
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
   },
+
   avatar: {
-    marginBottom: 12,
+    marginBottom: 14,
+    backgroundColor: "#e53935",
   },
+
   emailText: {
-    fontWeight: 'bold',
+    fontWeight: "700",
+    fontSize: 18,
+    color: "#222",
   },
+
   statusText: {
+    marginTop: 6,
     fontSize: 14,
-    color: 'gray',
-    marginTop: 4,
+    color: "#777",
   },
+
+  /* LIST ITEMS */
   listItem: {
-    backgroundColor: '#fff', // White background for list items
-    borderBottomWidth: 1,     // Separator
-    borderBottomColor: '#f0f0f0',
+    backgroundColor: "#fff",
+    borderBottomWidth: 1,
+    borderBottomColor: "#f1f1f1",
+    paddingVertical: 4,
   },
+
   divider: {
-    height: 12, // Use divider as a spacer
-    backgroundColor: 'transparent',
+    height: 18,
+    backgroundColor: "transparent",
   },
+
+  /* LOGOUT BUTTON */
   logoutButton: {
     margin: 20,
-    paddingVertical: 4,
-    backgroundColor: '#B00020', // Red color for logout
-  }
+    paddingVertical: 8,
+    borderRadius: 8,
+    backgroundColor: "#e53935",
+    elevation: 2,
+  },
 });

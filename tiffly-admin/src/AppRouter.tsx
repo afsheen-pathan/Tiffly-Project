@@ -9,7 +9,8 @@ import { ProviderListPage } from './pages/ProviderListPage';
 import { CustomerListPage } from './pages/CustomerListPage';
 import { SubscriptionListPage } from './pages/SubscriptionListPage';
 import { TransactionListPage } from './pages/TransactionListPage';
-import { FoodReportPage } from './pages/FoodReportPage'; // 1. Import the new page
+import { FoodReportPage } from './pages/FoodReportPage';
+import { PaymentSuccessPage } from './pages/PaymentSuccessPage'; // 1. Import the new page
 
 export const AppRouter = () => {
   const { user } = useAuth();
@@ -17,14 +18,20 @@ export const AppRouter = () => {
   return (
     <BrowserRouter>
       <Routes>
-        {!user ? (
-          // If not logged in, only show the login route
+        {/* --- 2. ADDED Public Routes --- */}
+        {/* This route is public, no login required */}
+        <Route path="/payment-success" element={<PaymentSuccessPage />} />
+        
+        {/* --- Login Route --- */}
+        {!user && (
           <>
             <Route path="/login" element={<AdminLogin />} />
             <Route path="*" element={<Navigate to="/login" replace />} />
           </>
-        ) : (
-          // If logged in, wrap routes in the AdminLayout
+        )}
+
+        {/* --- 3. Protected Admin Routes --- */}
+        {user && (
           <Route path="/" element={<AdminLayout />}>
             <Route index element={<Navigate to="/dashboard" replace />} />
             <Route path="dashboard" element={<DashboardPage />} />
@@ -33,8 +40,8 @@ export const AppRouter = () => {
             <Route path="customers" element={<CustomerListPage />} />
             <Route path="subscriptions" element={<SubscriptionListPage />} />
             <Route path="transactions" element={<TransactionListPage />} />
-            <Route path="food-reports" element={<FoodReportPage />} /> {/* 2. Add the new route */}
-            <Route path="*" element={<Navigate to="/dashboard" replace />} /> {/* Fallback */}
+            <Route path="food-reports" element={<FoodReportPage />} />
+            <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Route>
         )}
       </Routes>

@@ -1,167 +1,214 @@
 // src/screens/customer/SubscriptionScreen.tsx
-import React, { useState, useCallback, useEffect } from "react";
-import { View, StyleSheet, ScrollView, Alert } from "react-native";
-import {
-  Text,
-  Card,
-  ActivityIndicator,
-  Button,
-  Divider,
-  useTheme,
-} from "react-native-paper";
-import { useFocusEffect } from "@react-navigation/native";
-import { useAuth } from "../../contexts/AuthContext";
-import {
-  getUserActiveSubscription,
-  Subscription,
-  updateSubscriptionStatus,
-} from "../../services/userService";
-import { scheduleLocalNotification } from "../../services/notificationService";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-// 1. Make sure all date-fns functions are imported
-import {
-  format,
-  differenceInDays,
-  subDays,
-  differenceInCalendarDays,
-} from "date-fns";
-import { DatePickerModal } from "react-native-paper-dates";
-import Icon from "react-native-vector-icons/MaterialCommunityIcons";
+import React, { useState, useCallback, useEffect } from 'react';
+import { View, StyleSheet, ScrollView, Alert, FlatList } from 'react-native';
+import { Text, Card, ActivityIndicator, Button, Divider, useTheme } from 'react-native-paper';
+import { useFocusEffect } from '@react-navigation/native';
+import { useAuth } from '../../contexts/AuthContext';
+import { getUserActiveSubscriptions, Subscription, updateSubscriptionStatus } from '../../services/userService';
+import { scheduleLocalNotification } from '../../services/notificationService';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { format, differenceInDays, subDays, differenceInCalendarDays } from 'date-fns';
+import { DatePickerModal } from 'react-native-paper-dates';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
-// Key for AsyncStorage to track if reminder was scheduled
-const REMINDER_STORAGE_KEY_PREFIX = "@subscription_reminder_sent_";
+const REMINDER_STORAGE_KEY_PREFIX = '@subscription_reminder_sent_';
+
+// --- Reusable Card Component for each subscription ---
+const SubscriptionCard = ({
+  subscription,
+  onPausePress,
+  onResumePress,
+}: {
+  subscription: Subscription;
+  onPausePress: (sub: Subscription) => void;
+  onResumePress: (sub: Subscription) => void;
+}) => {
+  const theme = useTheme();
+  const startDate = subscription.startDate.toDate();
+  const endDate = subscription.endDate.toDate();
+  const pausedUntilDate = subscription.pausedUntil?.toDate();
+
+  return (
+    <Card style={styles.card}>
+      <Card.Title
+          title={subscription.planName}
+          titleVariant="headlineSmall"
+          subtitle={subscription.status === 'paused' && pausedUntilDate ? `Paused until ${format(pausedUntilDate, 'MMM d, yyyy')}` : 'Active'}
+          subtitleStyle={subscription.status === 'paused' ? styles.statusPaused : styles.statusActive}
+      />
+      <Card.Content>
+        <Text style={styles.kitchenName}>From: {subscription.kitchenName || 'Loading...'}</Text>
+        <Divider style={styles.divider} />
+        <View style={styles.detailRow}>
+<MaterialCommunityIcons name="calendar-arrow-right" size={20} color={theme.colors.primary} />
+          <Text style={styles.detailLabel}>Started On:</Text>
+          <Text style={styles.detailValue}>{format(startDate, 'MMM d, yyyy')}</Text>
+        </View>
+        <View style={styles.detailRow}>
+<MaterialCommunityIcons name="calendar-arrow-left" size={20} color={theme.colors.error} />
+          <Text style={styles.detailLabel}>Next Renewal:</Text>
+          <Text style={styles.detailValue}>{format(endDate, 'MMM d, yyyy')}</Text>
+        </View>
+         <View style={styles.detailRow}>
+<MaterialCommunityIcons name="tag-outline" size={20} color={theme.colors.secondary} />
+          <Text style={styles.detailLabel}>Frequency:</Text>
+          <Text style={styles.detailValue}>{subscription.planFrequency}</Text>
+        </View>
+         <View style={styles.detailRow}>
+<MaterialCommunityIcons name="information-outline" size={20} color={theme.colors.tertiary} />
+          <Text style={styles.detailLabel}>Status:</Text>
+          <Text style={subscription.status === 'paused' ? styles.statusPaused : styles.statusActive}>
+              {subscription.status}
+          </Text>
+        </View>
+        
+        {/* --- Pause/Resume Actions --- */}
+        <Divider style={styles.divider} />
+        {subscription.status === 'active' && (
+          <>
+            <Text style={styles.pauseInfo}>Need a break? Pause this subscription.</Text>
+            <Button
+                mode="contained"
+                onPress={() => onPausePress(subscription)} // Pass the specific sub
+                icon="calendar-month-outline"
+                style={styles.actionButton}
+            >
+                Pause Service
+            </Button>
+          </>
+        )}
+        {subscription.status === 'paused' && (
+          <>
+            <Text style={styles.pauseInfo}>Your service is currently paused.</Text>
+            <Button
+                mode="contained"
+                onPress={() => onResumePress(subscription)} // Pass the specific sub
+                icon="calendar-play"
+                style={styles.actionButton}
+            >
+                Resume Service
+            </Button>
+         </>
+        )}
+      </Card.Content>
+    </Card>
+  );
+};
+// --- *** END OF CARD COMPONENT *** ---
+
 
 export const SubscriptionScreen = () => {
-  const { user } = useAuth();
+  // --- THIS IS THE FIX ---
+  const { user } = useAuth(); // Removed the extra '}'
+  // -----------------------
   const theme = useTheme();
-  const [subscription, setSubscription] = useState<Subscription | null>(null);
+  const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // State for Pause Date Picker Modal
   const [isDatePickerVisible, setDatePickerVisible] = useState(false);
-  const [pauseRange, setPauseRange] = useState<{
-    startDate: Date | undefined;
-    endDate: Date | undefined;
-  }>({ startDate: undefined, endDate: undefined });
+  const [pauseRange, setPauseRange] = useState<{ startDate: Date | undefined; endDate: Date | undefined }>({ startDate: undefined, endDate: undefined });
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  const [subToPause, setSubToPause] = useState<Subscription | null>(null);
 
-  // --- Data Fetching ---
-  const fetchSubscription = useCallback(async () => {
-    if (!user) {
-      setLoading(false);
-      setError("You must be logged in.");
-      return;
-    }
-    setLoading(true);
-    setError(null);
-    setSubscription(null);
-    const { subscription: fetchedSubscription, error: fetchError } =
-      await getUserActiveSubscription(user.uid);
+  // --- Data Fetching (Updated) ---
+  const fetchSubscriptions = useCallback(async () => {
+    if (!user) { setLoading(false); setError('You must be logged in.'); return; }
+    setLoading(true); setError(null); setSubscriptions([]);
+    
+    const { subscriptions: fetchedSubscriptions, error: fetchError } =
+      await getUserActiveSubscriptions(user.uid);
+      
     if (fetchError) {
-      setError(
-        typeof fetchError === "string"
-          ? fetchError
-          : "Failed to load subscription."
-      );
+      if (fetchError.includes('index')) {
+        setError(fetchError);
+      } else {
+        setError('Failed to load subscriptions.');
+      }
+      setSubscriptions([]);
     } else {
-      setSubscription(fetchedSubscription);
+      setSubscriptions(fetchedSubscriptions || []);
     }
     setLoading(false);
   }, [user]);
 
-  // --- 2. FIX: Correct use of useFocusEffect ---
+  // --- useFocusEffect ---
   useFocusEffect(
     useCallback(() => {
-      fetchSubscription(); // Call the async function *inside* the callback
-    }, [fetchSubscription])
+      fetchSubscriptions();
+    }, [fetchSubscriptions])
   );
-  // --- END FIX ---
 
-  // --- 3. FIX: Correct use of useEffect for Reminder ---
+  // --- Renewal Reminder ---
   useEffect(() => {
-    // Define the async function *inside* the effect
-    const checkAndScheduleReminder = async () => {
-      if (!subscription || subscription.status !== "active") {
-        return;
-      }
-
-      const { id: subId, endDate: subEndDate } = subscription;
-      const reminderKey = `${REMINDER_STORAGE_KEY_PREFIX}${subId}`;
-      const reminderSent = await AsyncStorage.getItem(reminderKey);
-
-      if (reminderSent) {
-        console.log(
-          `[Notifications] Reminder already scheduled for sub ${subId}`
-        );
-        return;
-      }
-
-      const endDate = subEndDate.toDate();
-      const now = new Date();
-      const daysUntilRenewal = differenceInDays(endDate, now);
-
-      if (daysUntilRenewal <= 3 && daysUntilRenewal >= 0) {
-        const reminderDate = subDays(endDate, 1);
-        reminderDate.setHours(9, 0, 0, 0);
-        // const reminderDate = new Date(Date.now() + 5000);
-
-        if (reminderDate > now) {
-          // console.log(
-          //   `[Notifications] Scheduling renewal reminder for sub ${subId} at ${reminderDate.toISOString()}`
-          // );
-          console.log(`[Notifications] Scheduling TEST reminder for 5 seconds from now...`);
-          await scheduleLocalNotification(
-            "Subscription Renewal Reminder 📅",
-            `Your "${subscription.planName}" subscription will renew in 1 day.`,
-            reminderDate
-          );
-          await AsyncStorage.setItem(reminderKey, "true");
+    const checkAndScheduleReminders = async () => {
+      if (!subscriptions || subscriptions.length === 0) return;
+      for (const sub of subscriptions) {
+        if (sub.status !== 'active') continue;
+        const { id: subId, endDate: subEndDate } = sub;
+        const reminderKey = `${REMINDER_STORAGE_KEY_PREFIX}${subId}`;
+        const reminderSent = await AsyncStorage.getItem(reminderKey);
+        if (reminderSent) continue;
+        const endDate = subEndDate.toDate();
+        const now = new Date();
+        const daysUntilRenewal = differenceInDays(endDate, now);
+        if (daysUntilRenewal <= 3 && daysUntilRenewal >= 0) {
+          const reminderDate = subDays(endDate, 1);
+          reminderDate.setHours(9, 0, 0, 0);
+          if (reminderDate > now) {
+            console.log(`[Notifications] Scheduling renewal reminder for sub ${subId}`);
+            await scheduleLocalNotification(
+              'Subscription Renewal Reminder 📅',
+              `Your "${sub.planName}" subscription will renew in 1 day.`,
+              reminderDate
+            );
+            await AsyncStorage.setItem(reminderKey, 'true');
+          }
         }
       }
     };
-
-    // Call the async function from inside the effect
-    checkAndScheduleReminder();
-
-    // The effect itself returns 'void' (nothing), which is correct
-  }, [subscription]); // Dependency array is correct
-  // --- END FIX ---
+    checkAndScheduleReminders();
+  }, [subscriptions]);
 
   // --- Pause/Resume Logic ---
-  const showDatePicker = () => setDatePickerVisible(true);
-  const hideDatePicker = () => setDatePickerVisible(false);
+  const handlePausePress = (subscription: Subscription) => {
+    setSubToPause(subscription);
+    setDatePickerVisible(true);
+  };
+
+  const handleResumePress = async (subscription: Subscription) => {
+    if (!subscription.id) return;
+    setIsUpdatingStatus(true);
+    const { success, error: updateError } = await updateSubscriptionStatus(
+        subscription.id, 'active', null, 0
+    );
+    setIsUpdatingStatus(false);
+    if (success) {
+      Alert.alert("Success", "Subscription resumed.");
+      fetchSubscriptions();
+    } else {
+      Alert.alert("Error", updateError || "Failed to resume subscription.");
+    }
+  };
 
   const onConfirmPauseDates = useCallback(
-    ({
-      startDate,
-      endDate,
-    }: {
-      startDate: Date | undefined;
-      endDate: Date | undefined;
-    }) => {
+    ({ startDate, endDate }: { startDate: Date | undefined; endDate: Date | undefined }) => {
       setDatePickerVisible(false);
-      if (startDate && endDate && subscription?.id) {
+      if (!subToPause) return;
+      if (startDate && endDate && subToPause.id) {
         const daysPaused = differenceInCalendarDays(endDate, startDate) + 1;
         if (daysPaused <= 0) {
-          Alert.alert(
-            "Invalid Range",
-            "End date must be on or after start date."
-          );
-          return;
+            Alert.alert("Invalid Range", "End date must be on or after start date.");
+            return;
         }
         Alert.alert(
           "Confirm Pause",
-          `Pause service from ${format(startDate, "MMM d")} to ${format(
-            endDate,
-            "MMM d"
-          )} (${daysPaused} days)? Your renewal date will be extended.`,
+          `Pause "${subToPause.planName}" from ${format(startDate, 'MMM d')} to ${format(endDate, 'MMM d')} (${daysPaused} days)?`,
           [
-            { text: "Cancel", style: "cancel" },
+            { text: "Cancel", style: "cancel", onPress: () => setSubToPause(null) },
             {
               text: "Confirm Pause",
-              onPress: () =>
-                handlePauseConfirm(subscription.id, endDate, daysPaused),
+              onPress: () => handlePauseConfirm(subToPause.id, endDate, daysPaused),
             },
           ]
         );
@@ -169,256 +216,221 @@ export const SubscriptionScreen = () => {
         Alert.alert("Error", "Please select both a start and end date.");
       }
     },
-    [subscription]
+    [subToPause, fetchSubscriptions] // Add fetchSubscriptions
   );
 
-  const handlePauseConfirm = async (
-    subId: string,
-    pauseUntilDate: Date,
-    daysPaused: number
-  ) => {
+  const handlePauseConfirm = async (subId: string, pauseUntilDate: Date, daysPaused: number) => {
     setIsUpdatingStatus(true);
     const { success, error: updateError } = await updateSubscriptionStatus(
-      subId,
-      "paused",
-      pauseUntilDate,
-      daysPaused
+        subId, 'paused', pauseUntilDate, daysPaused
     );
     setIsUpdatingStatus(false);
+    setSubToPause(null);
     if (success) {
-      Alert.alert(
-        "Success",
-        "Subscription paused. Your renewal date has been updated."
-      );
-      fetchSubscription();
+      Alert.alert("Success", "Subscription paused. Your renewal date has been updated.");
+      fetchSubscriptions();
     } else {
       Alert.alert("Error", updateError || "Failed to pause subscription.");
     }
   };
 
-  const handleResume = async () => {
-    if (!subscription?.id) return;
-    setIsUpdatingStatus(true);
-    const { success, error: updateError } = await updateSubscriptionStatus(
-      subscription.id,
-      "active",
-      null,
-      0
-    );
-    setIsUpdatingStatus(false);
-    if (success) {
-      Alert.alert("Success", "Subscription resumed.");
-      fetchSubscription();
-    } else {
-      Alert.alert("Error", updateError || "Failed to resume subscription.");
-    }
-  };
-
   // --- Render States ---
   if (loading) {
-    return (
-      <ActivityIndicator animating={true} style={styles.loader} size="large" />
-    );
+    return <ActivityIndicator animating={true} style={styles.loader} size="large" />;
   }
   if (error) {
-    return <Text style={styles.errorText}>{error}</Text>;
+     return (
+        <View style={styles.centerContainer}>
+            <Text style={styles.errorText} selectable={true}>{error}</Text>
+            {error.includes('index') && (
+                <Text style={styles.emptyText}>Please ask the administrator to create the required database index.</Text>
+            )}
+        </View>
+     );
   }
-  if (!subscription) {
+  if (subscriptions.length === 0) {
     return (
       <View style={styles.centerContainer}>
-        <Text style={styles.emptyText}>
-          No active or paused subscription found.
-        </Text>
+        <MaterialCommunityIcons name="calendar-remove-outline" size={20} color={theme.colors.error} />
+        <Text style={styles.emptyText}>You have no active subscriptions.</Text>
+        <Text style={styles.emptySubText}>Subscribe to a plan from the "Browse" tab.</Text>
       </View>
     );
   }
 
-  // --- Render Active/Paused Subscription ---
-  const startDate = subscription.startDate.toDate();
-  const endDate = subscription.endDate.toDate();
-  const pausedUntilDate = subscription.pausedUntil?.toDate();
-
+  // --- Render List of Subscriptions ---
   return (
     <>
-      <ScrollView style={styles.container}>
-        <Card style={styles.card}>
-          <Card.Title
-            title="Current Subscription"
-            titleVariant="headlineMedium"
-            subtitle={
-              subscription.status === "paused" && pausedUntilDate
-                ? `Paused until ${format(pausedUntilDate, "MMM d, yyyy")}`
-                : "Active"
-            }
-            subtitleStyle={
-              subscription.status === "paused"
-                ? styles.statusPaused
-                : styles.statusActive
-            }
+      <FlatList
+        data={subscriptions}
+        renderItem={({ item }) => (
+          <SubscriptionCard
+            subscription={item}
+            onPausePress={handlePausePress}
+            onResumePress={handleResumePress}
           />
-          <Card.Content>
-            <Text style={styles.planName}>{subscription.planName}</Text>
-            <Text style={styles.kitchenName}>
-              From: {subscription.kitchenName || "Loading..."}
-            </Text>
-            <Divider style={styles.divider} />
-            <View style={styles.detailRow}>
-              <Icon
-                name="calendar-arrow-right"
-                size={20}
-                color={theme.colors.primary}
-              />
-              <Text style={styles.detailLabel}>Started On:</Text>
-              <Text style={styles.detailValue}>
-                {format(startDate, "MMM d, yyyy")}
-              </Text>
-            </View>
-            <View style={styles.detailRow}>
-              <Icon
-                name="calendar-arrow-left"
-                size={20}
-                color={theme.colors.error}
-              />
-              <Text style={styles.detailLabel}>Next Renewal:</Text>
-              <Text style={styles.detailValue}>
-                {format(endDate, "MMM d, yyyy")}
-              </Text>
-            </View>
-            <View style={styles.detailRow}>
-              <Icon
-                name="tag-outline"
-                size={20}
-                color={theme.colors.secondary}
-              />
-              <Text style={styles.detailLabel}>Frequency:</Text>
-              <Text style={styles.detailValue}>
-                {subscription.planFrequency}
-              </Text>
-            </View>
-            <View style={styles.detailRow}>
-              <Icon
-                name="information-outline"
-                size={20}
-                color={theme.colors.tertiary}
-              />
-              <Text style={styles.detailLabel}>Status:</Text>
-              <Text
-                style={
-                  subscription.status === "paused"
-                    ? styles.statusPaused
-                    : styles.statusActive
-                }
-              >
-                {subscription.status}
-              </Text>
-            </View>
-          </Card.Content>
-        </Card>
-
-        <Card style={styles.card}>
-          <Card.Title title="Manage Service" />
-          <Card.Content>
-            {subscription.status === "active" && (
-              <>
-                <Text style={styles.pauseInfo}>
-                  Need a break? Pause your service for specific dates. Your
-                  renewal date will be automatically extended.
-                </Text>
-                <Button
-                  mode="contained"
-                  onPress={showDatePicker}
-                  icon="calendar-month-outline"
-                  style={styles.actionButton}
-                  loading={isUpdatingStatus}
-                  disabled={isUpdatingStatus}
-                >
-                  Pause Service
-                </Button>
-              </>
-            )}
-            {subscription.status === "paused" && (
-              <>
-                <Text style={styles.pauseInfo}>
-                  Your service is currently paused. Resume anytime.
-                </Text>
-                <Button
-                  mode="contained"
-                  onPress={handleResume}
-                  icon="calendar-play"
-                  style={styles.actionButton}
-                  loading={isUpdatingStatus}
-                  disabled={isUpdatingStatus}
-                >
-                  Resume Service
-                </Button>
-              </>
-            )}
-          </Card.Content>
-        </Card>
-      </ScrollView>
+        )}
+        keyExtractor={(item) => item.id}
+        style={styles.container}
+        ListHeaderComponent={
+          <Text variant='headlineSmall' style={styles.listHeader}>My Active Subscriptions</Text>
+        }
+        refreshing={isUpdatingStatus}
+        onRefresh={fetchSubscriptions}
+      />
 
       <DatePickerModal
-        locale="en"
-        mode="range"
-        visible={isDatePickerVisible}
-        onDismiss={hideDatePicker}
-        startDate={pauseRange.startDate}
-        endDate={pauseRange.endDate}
-        onConfirm={onConfirmPauseDates}
-        validRange={{ startDate: new Date() }}
+         locale="en"
+         mode="range"
+         visible={isDatePickerVisible}
+         onDismiss={() => { setDatePickerVisible(false); setSubToPause(null); }}
+         startDate={pauseRange.startDate}
+         endDate={pauseRange.endDate}
+         onConfirm={onConfirmPauseDates}
+         validRange={{ startDate: new Date() }}
       />
     </>
   );
 };
 
-// --- STYLES ---
+// --- PREMIUM UPDATED STYLES ---
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f5f5f5" },
+  container: {
+    flex: 1,
+    backgroundColor: "#FAFAFA",
+  },
+
+  // Loading & Empty
   centerContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
     padding: 20,
   },
-  loader: { flex: 1, justifyContent: "center", alignItems: "center" },
-  errorText: { textAlign: "center", color: "red", fontSize: 16 },
-  emptyText: { textAlign: "center", fontSize: 16, color: "gray" },
-  card: { margin: 16, elevation: 2 },
-  planName: {
-    fontSize: 22,
-    fontWeight: "bold",
-    marginBottom: 6,
-    color: "#333",
+
+  loader: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
   },
-  kitchenName: { fontSize: 16, color: "gray", marginBottom: 12 },
-  divider: { marginVertical: 12, height: 1.5 },
-  detailRow: { flexDirection: "row", alignItems: "center", marginBottom: 10 },
+
+  errorText: {
+    textAlign: "center",
+    color: "red",
+    fontSize: 16,
+    marginBottom: 10,
+  },
+
+  emptyText: {
+    textAlign: "center",
+    fontSize: 18,
+    color: "#777",
+    marginTop: 16,
+    fontWeight: "600",
+  },
+
+  emptySubText: {
+    textAlign: "center",
+    fontSize: 14,
+    color: "lightgray",
+    marginTop: 8,
+  },
+
+  // Header
+  listHeader: {
+    fontSize: 22,
+    fontWeight: "800",
+    color: "#222",
+    paddingHorizontal: 16,
+    paddingTop: 18,
+    paddingBottom: 6,
+  },
+
+  // Subscription Card
+  card: {
+    marginHorizontal: 16,
+    marginVertical: 12,
+    borderRadius: 16,
+    backgroundColor: "#fff",
+    elevation: 5,
+
+    shadowColor: "#000",
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    overflow: "hidden",
+  },
+
+  kitchenName: {
+    fontSize: 16,
+    color: "#555",
+    marginBottom: 12,
+    fontWeight: "600",
+  },
+
+  divider: {
+    marginVertical: 12,
+    height: 1,
+    backgroundColor: "#EEE",
+  },
+
+  // Detail Rows
+  detailRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 10,
+  },
+
   detailLabel: {
     fontSize: 15,
-    color: "#555",
-    fontWeight: "600",
+    color: "#444",
     marginLeft: 8,
     flex: 1,
+    fontWeight: "600",
   },
-  detailValue: { fontSize: 15, color: "#333", textAlign: "right" },
+
+  detailValue: {
+    fontSize: 15,
+    color: "#222",
+    fontWeight: "600",
+  },
+
+  // Status styles
   statusActive: {
-    color: "green",
+    color: "#2E7D32",
     fontWeight: "bold",
     textTransform: "capitalize",
     textAlign: "right",
+    fontSize: 18,
   },
+
   statusPaused: {
-    color: "orange",
+    color: "#FB8C00",
     fontWeight: "bold",
     textTransform: "capitalize",
     textAlign: "right",
+    fontSize: 15,
   },
+
   pauseInfo: {
-    marginBottom: 16,
+    marginBottom: 14,
     fontSize: 14,
     color: "#666",
     textAlign: "center",
     lineHeight: 20,
   },
-  actionButton: { marginTop: 8, paddingVertical: 4 },
+
+  // Premium Action Button
+  actionButton: {
+    marginTop: 8,
+    paddingVertical: 6,
+    borderRadius: 10,
+    backgroundColor: "#e53935",
+
+    elevation: 3,
+    shadowColor: "#e53935",
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
+  },
 });

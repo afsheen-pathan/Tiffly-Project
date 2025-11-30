@@ -1,8 +1,15 @@
-import React from 'react';
-import { View, StyleSheet, ImageBackground, Dimensions, TouchableOpacity } from 'react-native';
-import { Text, Button } from 'react-native-paper';
-import { LinearGradient } from 'expo-linear-gradient';
-import { StackNavigationProp } from '@react-navigation/stack';
+// src/screens/auth/WelcomeScreen.tsx
+import React, { useEffect, useRef } from "react";
+import {
+  View,
+  StyleSheet,
+  ImageBackground,
+  Dimensions,
+  TouchableOpacity,
+  Animated,
+} from "react-native";
+import { Text, Button } from "react-native-paper";
+import { StackNavigationProp } from "@react-navigation/stack";
 
 type AuthStackParamList = {
   Welcome: undefined;
@@ -11,47 +18,151 @@ type AuthStackParamList = {
 };
 
 type Props = {
-  navigation: StackNavigationProp<AuthStackParamList, 'Welcome'>;
+  navigation: StackNavigationProp<AuthStackParamList, "Welcome">;
 };
 
-const PLACEHOLDER_IMAGE = 'https://images.unsplash.com/photo-1565557623262-b51c2513a641?q=80&w=1970';
-const { height } = Dimensions.get('window');
+// Better food-delivery background
+const BACKGROUND_IMAGE =
+  "https://img.freepik.com/free-photo/high-angle-delicious-pakistan-meal-arrangement-basket_23-2148821574.jpg?semt=ais_hybrid&w=740&q=80";
 
-export const WelcomeScreen = ({ navigation }: Props) => (
-  <View style={styles.container}>
-    <ImageBackground source={{ uri: PLACEHOLDER_IMAGE }} resizeMode="cover" style={styles.imageBackground}>
-      <LinearGradient colors={['rgba(0,0,0,0.4)', 'rgba(0,0,0,0.85)']} style={StyleSheet.absoluteFillObject} />
+const { height } = Dimensions.get("window");
 
-      <View style={styles.contentContainer}>
-        <Text variant="displayMedium" style={styles.title}>Homemade Food,</Text>
-        <Text variant="displayMedium" style={[styles.title, styles.titleHighlight]}>Delivered Daily.</Text>
-        <Text style={styles.subtitle}>Enjoy fresh meals from verified home kitchens every day.</Text>
-      </View>
+export const WelcomeScreen = ({ navigation }: Props) => {
+  // --- Animation Values ---
+  const fadeAnim = useRef(new Animated.Value(0)).current;       // opacity
+  const translateY = useRef(new Animated.Value(20)).current;    // slight move up
 
-      <View style={styles.buttonContainer}>
-        <Button mode="contained" onPress={() => navigation.navigate('Login')} style={styles.button} labelStyle={styles.buttonLabel}>
-          Sign In
-        </Button>
-        <TouchableOpacity onPress={() => navigation.navigate('SignUp')}>
-          <Text style={styles.link}>
-            Don’t have an account? <Text style={styles.linkBold}>Sign Up</Text>
+  useEffect(() => {
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 800,
+      useNativeDriver: true,
+    }).start();
+
+    Animated.timing(translateY, {
+      toValue: 0,
+      duration: 800,
+      useNativeDriver: true,
+    }).start();
+  }, []);
+
+  return (
+    <View style={styles.container}>
+      <ImageBackground
+        source={{ uri: BACKGROUND_IMAGE }}
+        resizeMode="cover"
+        style={styles.imageBackground}
+      >
+        <View style={styles.overlay} />
+
+        {/* Apply fade + slide animation */}
+        <Animated.View
+          style={[
+            styles.contentContainer,
+            {
+              opacity: fadeAnim,
+              transform: [{ translateY }],
+            },
+          ]}
+        >
+          <Text variant="headlineLarge" style={styles.title}>
+            Fresh, Homemade Meals
           </Text>
-        </TouchableOpacity>
-      </View>
-    </ImageBackground>
-  </View>
-);
+
+          <Text
+            variant="headlineLarge"
+            style={[styles.title, styles.titleHighlight]}
+          >
+            Delivered to You 🍲
+          </Text>
+
+          <Text style={styles.subtitle}>
+            Order or subscribe to tasty, healthy tiffins prepared by trusted home chefs.
+          </Text>
+        </Animated.View>
+
+        {/* Buttons section - animated too */}
+        <Animated.View
+          style={[
+            styles.buttonContainer,
+            {
+              opacity: fadeAnim,
+              transform: [{ translateY }],
+            },
+          ]}
+        >
+          <Button
+            mode="contained"
+            onPress={() => navigation.navigate("Login")}
+            style={styles.button}
+            labelStyle={styles.buttonLabel}
+          >
+            Sign In
+          </Button>
+
+          <TouchableOpacity onPress={() => navigation.navigate("SignUp")}>
+            <Text style={styles.link}>
+              Don’t have an account? <Text style={styles.linkBold}>Sign Up</Text>
+            </Text>
+          </TouchableOpacity>
+        </Animated.View>
+      </ImageBackground>
+    </View>
+  );
+};
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  imageBackground: { flex: 1, height, justifyContent: 'space-between', padding: 20 },
-  contentContainer: { flex: 1, justifyContent: 'center', marginTop: '30%' },
-  title: { color: '#fff', fontWeight: 'bold', textAlign: 'center' },
-  titleHighlight: { color: '#9EF0A3' },
-  subtitle: { color: '#fff', textAlign: 'center', fontSize: 16, marginTop: 16, paddingHorizontal: 20 },
-  buttonContainer: { paddingBottom: 50 },
-  button: { borderRadius: 30, paddingVertical: 10 },
-  buttonLabel: { fontSize: 16, fontWeight: 'bold' },
-  link: { marginTop: 16, textAlign: 'center', color: '#fff', fontSize: 15 },
-  linkBold: { fontWeight: 'bold', textDecorationLine: 'underline' },
+  container: { flex: 1, backgroundColor: "#000" },
+  imageBackground: {
+    flex: 1,
+    height,
+    justifyContent: "space-between",
+    padding: 24,
+  },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0,0,0,0.55)",
+  },
+  contentContainer: {
+    flex: 1,
+    justifyContent: "center",
+    marginTop: "30%",
+    paddingHorizontal: 12,
+  },
+  title: {
+    color: "#fff",
+    fontWeight: "bold",
+    textAlign: "center",
+  },
+  titleHighlight: {
+    color: "#e53935", // Matches your SignUp/Login theme
+  },
+  subtitle: {
+    color: "#f1f1f1",
+    textAlign: "center",
+    fontSize: 16,
+    marginTop: 16,
+    lineHeight: 22,
+    paddingHorizontal: 16,
+  },
+  buttonContainer: {
+    paddingBottom: 50,
+  },
+  button: {
+    borderRadius: 25,
+    paddingVertical: 10,
+    backgroundColor: "#e53935",
+  },
+  buttonLabel: { fontSize: 16, fontWeight: "bold", color: "#fff" },
+  link: {
+    marginTop: 18,
+    textAlign: "center",
+    color: "#fff",
+    fontSize: 15,
+  },
+  linkBold: {
+    fontWeight: "bold",
+    color: "#e53935",
+    textDecorationLine: "underline",
+  },
 });

@@ -1,16 +1,9 @@
-// tiffly-mobile/src/config/firebase.ts
-
-import { initializeApp } from "firebase/app";
+import { initializeApp } from 'firebase/app';
+// 1. Import these new auth functions
+import { initializeAuth, getReactNativePersistence, getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
-
-// --- THIS IS THE NEW, CORRECT IMPORT ---
-// We import initializeAuth AND the persistence layer from 'firebase/auth'
-import { initializeAuth, indexedDBLocalPersistence } from 'firebase/auth'; 
-// ----------------------------------------
-
-// We still need this package, as Expo polyfills indexedDB with it.
-// The 'npm install' command we ran earlier is all we need.
-import '@react-native-async-storage/async-storage';
+import { getStorage } from 'firebase/storage';
+import ReactNativeAsyncStorage from '@react-native-async-storage/async-storage';
 
 // Your web app's Firebase configuration (this is correct)
 const firebaseConfig = {
@@ -25,13 +18,13 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
-// --- THIS IS THE FIX ---
-// This tells Firebase (v10+) to use indexedDB for persistence.
-// In React Native, Expo automatically makes this use AsyncStorage behind the scenes.
-// This fixes the 'auth/configuration-not-found' error.
-export const auth = initializeAuth(app, {
-  persistence: indexedDBLocalPersistence 
+// 2. Initialize Auth with Persistence
+// This tells Firebase: "Save the user's login to the phone's storage"
+const auth = initializeAuth(app, {
+  persistence: getReactNativePersistence(ReactNativeAsyncStorage)
 });
-// -----------------------
 
-export const db = getFirestore(app);
+const db = getFirestore(app);
+const storage = getStorage(app);
+
+export { auth, db, storage };

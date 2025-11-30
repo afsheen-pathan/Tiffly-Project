@@ -203,119 +203,166 @@ export const EarningsScreen = () => {
   );
 };
 
-// --- STYLES ---
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: "#fafafa",
   },
+
+  /* ---------- LOADER & EMPTY ---------- */
   loader: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   centerContainer: {
     flexGrow: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     padding: 20,
   },
   errorText: {
-    textAlign: 'center',
-    color: 'red',
+    textAlign: "center",
+    color: "#e53935",
     fontSize: 16,
+    fontWeight: "600",
     marginBottom: 10,
   },
   emptyText: {
-    textAlign: 'center',
+    textAlign: "center",
     fontSize: 16,
-    color: 'gray',
+    color: "#777",
+    marginTop: 10,
   },
+
+  /* ---------- SUMMARY CARDS ---------- */
   summaryCard: {
-      marginHorizontal: 12,
-      marginTop: 16,
-      backgroundColor: '#E8EAF6', // Light indigo background
-      elevation: 2,
+    marginHorizontal: 14,
+    marginTop: 16,
+    borderRadius: 14,
+    backgroundColor: "#ffeaea", // very light red theme tint
+    elevation: 2,
+
+    shadowColor: "#e53935",
+    shadowOpacity: 0.15,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 4,
   },
+
   summaryCardSecondary: {
-      marginHorizontal: 12,
-      marginTop: 12,
-      backgroundColor: '#fff',
-      elevation: 1,
+    marginHorizontal: 14,
+    marginTop: 12,
+    borderRadius: 14,
+    backgroundColor: "#fff",
+    elevation: 2,
+
+    shadowColor: "#000",
+    shadowOpacity: 0.07,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 3,
   },
+
   summaryTitle: {
-      fontSize: 16,
-      color: '#555',
-      textAlign: 'center',
+    fontSize: 16,
+    color: "#444",
+    textAlign: "center",
+    fontWeight: "600",
   },
+
   summaryAmount: {
-      fontSize: 32,
-      fontWeight: 'bold',
-      color: '#303F9F', // Dark indigo
-      textAlign: 'center',
-      marginVertical: 4,
+    fontSize: 34,
+    fontWeight: "800",
+    color: "#e53935", // theme primary
+    textAlign: "center",
+    marginVertical: 6,
   },
+
   summarySubtitle: {
-      fontSize: 12,
-      color: '#555',
-      textAlign: 'center',
+    fontSize: 12,
+    color: "#777",
+    textAlign: "center",
+    marginBottom: 4,
   },
+
+  /* ---------- DETAIL ROWS ---------- */
   detailRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 4,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingVertical: 6,
   },
+
   detailLabel: {
     fontSize: 14,
-    color: 'gray',
-    fontWeight: '500',
+    color: "#666",
+    fontWeight: "600",
   },
+
   detailValue: {
     fontSize: 14,
-    color: '#333',
-    fontWeight: 'bold',
+    fontWeight: "700",
+    color: "#222",
   },
+
   divider: {
-      marginVertical: 6,
+    marginVertical: 8,
+    height: 1,
+    backgroundColor: "#eee",
   },
+
+  /* ---------- LIST HEADER ---------- */
   listHeader: {
-      paddingHorizontal: 16,
-      paddingTop: 20,
-      paddingBottom: 8,
-      fontWeight: 'bold',
-      color: '#333',
+    paddingHorizontal: 16,
+    paddingTop: 22,
+    paddingBottom: 10,
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#222",
   },
+
+  /* ---------- TRANSACTION LIST ---------- */
   listContent: {
-    paddingHorizontal: 8,
-    paddingBottom: 8,
-    flexGrow: 1, // Ensure empty list component centers
+    paddingHorizontal: 10,
+    paddingBottom: 14,
+    flexGrow: 1,
   },
+
   listItem: {
-      backgroundColor: '#fff',
-      borderRadius: 8,
-      marginBottom: 8,
-      elevation: 1,
+    backgroundColor: "#ffffff",
+    borderRadius: 12,
+    marginBottom: 12,
+    elevation: 1,
+
+    shadowColor: "#000",
+    shadowOpacity: 0.06,
+    shadowRadius: 2,
+    shadowOffset: { width: 0, height: 1 },
   },
+
   itemTitle: {
-      fontWeight: 'bold',
+    fontWeight: "700",
+    color: "#222",
   },
+
   itemDate: {
-      fontSize: 12,
-      color: 'gray',
+    fontSize: 13,
+    color: "#777",
   },
+
+  /* ---------- PRICE BADGES ---------- */
   priceContainer: {
-      justifyContent: 'center',
-      alignItems: 'flex-end',
-      paddingRight: 8,
+    justifyContent: "center",
+    alignItems: "flex-end",
+    paddingRight: 8,
   },
+
   earningText: {
-      fontSize: 16,
-      fontWeight: 'bold',
-      color: 'green',
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#e53935", // theme primary
   },
+
   totalPriceText: {
-      fontSize: 11,
-      color: 'gray',
-  }
+    fontSize: 11,
+    color: "#888",
+  },
 });

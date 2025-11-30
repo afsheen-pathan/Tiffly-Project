@@ -108,34 +108,59 @@ export const CustomerDetailsModal = ({ visible, onDismiss, onSubmit }: Props) =>
   );
 };
 
-// --- STYLES --- (Similar to Add Plan Modal)
+// --- PREMIUM STYLES ---
 const styles = StyleSheet.create({
   modalContainer: {
-    backgroundColor: 'white',
-    padding: 20,
-    margin: 20,
-    borderRadius: 8,
-    maxHeight: '90%',
+    backgroundColor: "#FFFFFF",
+    padding: 24,
+    marginHorizontal: 20,
+    borderRadius: 16,
+    maxHeight: "92%",
+
+    // Soft premium shadow
+    elevation: 10,
+    shadowColor: "#000",
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
   },
+
   modalTitle: {
-    marginBottom: 8,
-    textAlign: 'center',
+    fontSize: 22,
+    fontWeight: "800",
+    textAlign: "center",
+    color: "#1A1A1A",
+    marginBottom: 6,
   },
-   modalSubtitle: {
+
+  modalSubtitle: {
+    fontSize: 14,
+    textAlign: "center",
+    color: "#666",
     marginBottom: 20,
-    textAlign: 'center',
-    color: 'gray',
   },
+
+  // Premium input fields
   input: {
-    marginBottom: 8,
-    backgroundColor: '#f6f6f6',
+    marginBottom: 10,
+    backgroundColor: "#FAFAFA",
+    borderRadius: 10,
+    paddingHorizontal: 4,
+
+    // Border like food apps
+    borderWidth: 1,
+    borderColor: "#E0E0E0",
   },
+
   modalButton: {
-    marginTop: 10,
+    marginTop: 14,
+    borderRadius: 10,
+    paddingVertical: 6,
   },
+
   errorTextModal: {
-    color: 'red',
-    marginLeft: 8,
+    color: "#E53935",
+    marginLeft: 4,
     marginBottom: 8,
     fontSize: 12,
   },

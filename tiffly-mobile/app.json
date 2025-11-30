@@ -2,14 +2,15 @@
   "expo": {
     "name": "tiffly-mobile",
     "slug": "tiffly-mobile",
+    "scheme": "tiffly",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/app-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#FBFDF8"
     },
     "ios": {
       "supportsTablet": true,

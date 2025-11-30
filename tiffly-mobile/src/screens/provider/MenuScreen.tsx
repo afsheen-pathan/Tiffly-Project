@@ -312,10 +312,11 @@ export const MenuScreen = () => {
         // --- 6. ADD ListHeaderComponent ---
         ListHeaderComponent={
           <Button
-            mode="contained-tonal" // Use a secondary button style
+            mode="contained-tonal"
             icon="calendar-edit"
             style={styles.weeklyMenuButton}
-            onPress={() => navigation.navigate("WeeklyMenu")} // Navigate to the new screen
+            labelStyle={{ color: "#fff" }}
+            onPress={() => navigation.navigate("WeeklyMenu")}
           >
             Set Daily Menu for the Week
           </Button>
@@ -337,8 +338,7 @@ export const MenuScreen = () => {
         // refreshControl={<RefreshControl refreshing={loading} onRefresh={fetchPlans} />}
       />
 
-      <FAB icon="plus" style={styles.fab} onPress={showAddModal} />
-
+      <FAB icon="plus" color="#fff" style={styles.fab} onPress={showAddModal} />
       <Portal>
         <Modal
           visible={isModalVisible}
@@ -515,71 +515,165 @@ export const MenuScreen = () => {
   );
 };
 
-// --- STYLES ---
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f5f5f5" },
+  container: {
+    flex: 1,
+    backgroundColor: "#fafafa",
+  },
+
   centerContainer: {
     flexGrow: 1,
     justifyContent: "center",
     alignItems: "center",
     padding: 20,
   },
-  loader: { flex: 1, justifyContent: "center", alignItems: "center" }, // Center loader
-  errorText: { textAlign: "center", color: "red", fontSize: 16, padding: 20 }, // Center error
-  errorTextModal: {
-    color: "red",
-    marginLeft: 8,
-    marginBottom: 8,
-    fontSize: 12,
+
+  loader: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
   },
+
+  errorText: {
+    textAlign: "center",
+    color: "#e53935",
+    fontSize: 16,
+    padding: 20,
+    fontWeight: "600",
+  },
+
   emptyText: {
     textAlign: "center",
     fontSize: 16,
-    color: "gray",
+    color: "#777",
     paddingHorizontal: 20,
   },
+
   emptySubText: {
     textAlign: "center",
     marginTop: 8,
     fontSize: 14,
-    color: "darkgray",
+    color: "#aaa",
   },
-  listContent: { padding: 8, flexGrow: 1 }, // Add flexGrow
+
+  listContent: {
+    padding: 12,
+    flexGrow: 1,
+  },
+
   listItem: {
-    backgroundColor: "#fff",
-    borderRadius: 8,
-    marginBottom: 8,
-    elevation: 1,
-  },
-  planTitle: { fontWeight: "bold" },
-  planDescription: { fontSize: 12, color: "gray" },
-  actionButtons: { flexDirection: "row", alignItems: "center" },
-  iconButton: { margin: -4 }, // Adjust margin for tighter packing
-  fab: { position: "absolute", margin: 16, right: 0, bottom: 0 },
-  modalContainer: {
-    backgroundColor: "white",
-    padding: 20,
-    margin: 20,
-    borderRadius: 8,
-    maxHeight: "90%",
-  },
-  modalTitle: { marginBottom: 20, textAlign: "center" },
-  input: { marginBottom: 8, backgroundColor: "#f6f6f6" },
-  pickerWrapper: {
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 4,
+    backgroundColor: "#ffffff",
+    borderRadius: 12,
+    marginTop: 10,
     marginBottom: 12,
-    backgroundColor: "#f6f6f6",
+    elevation: 2,
+    paddingVertical: 4,
+    paddingHorizontal: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.07,
+    shadowRadius: 2,
   },
-  pickerError: { borderColor: "red" },
-  picker: { height: 50 },
-  pickerItem: { height: 50 },
-  pickerPlaceholder: { color: "grey" },
-  modalButton: { marginTop: 10 },
+
+  planTitle: {
+    fontWeight: "700",
+    fontSize: 16,
+    color: "#222",
+  },
+
+  planDescription: {
+    fontSize: 13,
+    color: "#666",
+    marginTop: 2,
+  },
+
+  actionButtons: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+
+  iconButton: {
+    marginHorizontal: -2,
+  },
+
+  /* FAB Floating Add Button */
+  fab: {
+    position: "absolute",
+    bottom: 20,
+    right: 20,
+    backgroundColor: "#e53935",
+  },
+
+  modalContainer: {
+    backgroundColor: "#fff",
+    padding: 22,
+    margin: 20,
+    borderRadius: 12,
+    maxHeight: "90%",
+    elevation: 3,
+  },
+
+  modalTitle: {
+    marginBottom: 20,
+    textAlign: "center",
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#e53935",
+  },
+
+  input: {
+    marginBottom: 10,
+    backgroundColor: "#f3f3f3",
+    borderRadius: 8,
+  },
+
+  errorTextModal: {
+    color: "#e53935",
+    marginBottom: 6,
+    marginLeft: 4,
+    fontSize: 12,
+    fontWeight: "500",
+  },
+
+  /* Picker Styling */
+  pickerWrapper: {
+    borderWidth: 1.3,
+    borderColor: "#ddd",
+    borderRadius: 8,
+    marginBottom: 12,
+    backgroundColor: "#f3f3f3",
+  },
+
+  pickerError: {
+    borderColor: "#ee4a48ff",
+  },
+
+  picker: {
+    height: 50,
+    width: "100%",
+  },
+
+  pickerItem: {
+    height: 50,
+  },
+
+  pickerPlaceholder: {
+    color: "#999",
+  },
+
+  modalButton: {
+    marginTop: 12,
+    borderRadius: 8,
+    paddingVertical: 4,
+  },
+
   weeklyMenuButton: {
     marginHorizontal: 12,
-    marginTop: 12,
-    marginBottom: 4, // Add some space before the list starts
+    marginTop: 16,
+    marginBottom: 8,
+    borderRadius: 10,
+    paddingVertical: 6,
+    color: "#fff",
+    backgroundColor: "#e53935",
   },
 });

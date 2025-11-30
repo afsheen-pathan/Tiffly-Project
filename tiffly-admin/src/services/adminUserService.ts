@@ -57,6 +57,9 @@ export interface ProviderListData {
   city: string;
   status: string; // 'approved', 'suspended', 'deactivated'
   createdAt?: Timestamp | null;
+  // --- NEW FIELDS FOR RATINGS ---
+  averageRating?: number;
+  ratingCount?: number;
 }
 
 // Type for subscription transaction data
@@ -70,6 +73,7 @@ export interface SubscriptionTransactionData {
   status: string; // 'active', 'paused', 'cancelled', 'trialing'
   createdAt: Timestamp;
   pricePaid?: number; // The total amount the customer paid (in Rupees)
+  
 }
 
 // --- MODIFIED FUNCTION ---
@@ -97,6 +101,9 @@ export const getAllApprovedProviders = async (): Promise<{ providers: ProviderLi
             city: data.city,
             status: data.status,
             createdAt: data.createdAt,
+            // --- MAP NEW FIELDS ---
+            averageRating: data.averageRating,
+            ratingCount: data.ratingCount,
           });
       } else {
           console.warn(`Skipping provider ${doc.id} due to missing fields.`);

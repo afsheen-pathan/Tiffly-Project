@@ -1,21 +1,19 @@
 // src/contexts/AuthContext.tsx
-
-import React, { createContext, useState, useContext, ReactNode } from 'react';
+import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
 import { auth } from '../config/firebase';
-import { User } from 'firebase/auth';
 import { 
+  User, 
   signInWithEmailAndPassword, 
   signOut as firebaseSignOut, 
+  onAuthStateChanged, // 1. Import this listener
   UserCredential 
 } from 'firebase/auth';
 import { SignInData } from '../services/userService';
-// 1. Import the new notification functions
 import { 
   registerForPushNotificationsAsync, 
   savePushTokenToUser 
 } from '../services/notificationService';
 
-// Context shape: includes functions
 interface AuthContextType {
   user: User | null;
   loading: boolean;
@@ -27,49 +25,58 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = (useState(false)); // We only use this for login
+  // 2. Start loading as TRUE so we can check for a saved user first
+  const [loading, setLoading] = useState(true); 
 
-  // This is our manual signIn function
+  // --- 3. ADD THIS EFFECT: Listen for auth state changes ---
+  useEffect(() => {
+    console.log("[Auth] Checking for saved user...");
+    // This function runs automatically on startup and whenever auth state changes
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      if (currentUser) {
+        console.log("[Auth] User restored:", currentUser.uid);
+        setUser(currentUser);
+      } else {
+        console.log("[Auth] No user found.");
+        setUser(null);
+      }
+      setLoading(false); // Done checking
+    });
+
+    // Cleanup subscription on unmount
+    return () => unsubscribe();
+  }, []);
+  // -------------------------------------------------------
+
   const signIn = async (data: SignInData) => {
-    setLoading(true);
+    // We don't need to set loading here, because onAuthStateChanged will trigger
     try {
-      // Use the firebase function
       const userCredential = await signInWithEmailAndPassword(auth, data.email, data.password);
-      setUser(userCredential.user); // Manually set the user
-      setLoading(false);
-
-      // --- 2. ADD NOTIFICATION LOGIC ---
+      // Note: setUser is handled automatically by the listener above now!
+      
+      // Notification logic
       try {
-        console.log('[Notifications] User logged in, registering for push token...');
-        const token = await registerForPushNotificationsAsync(); // Get token
+        const token = await registerForPushNotificationsAsync();
         if (token) {
-          // Save the token to their Firestore user document
           await savePushTokenToUser(userCredential.user.uid, token);
         }
       } catch (e) {
-        // This should not stop the login flow
-        console.error('[Notifications] Error during token registration:', e);
+        console.error('[Auth] Token error:', e);
       }
-      // --- END NOTIFICATION LOGIC ---
 
       return userCredential;
     } catch (error: any) {
-      console.error("Error signing in (Context):", error);
-      setLoading(false);
+      console.error("Error signing in:", error);
       return { error };
     }
   };
 
-  // This is our manual signOut function
   const signOut = async () => {
     try {
-      // TODO: We could also remove the push token from Firestore here
-      // to stop sending notifications to a logged-out device.
-      // For now, we'll just log them out.
       await firebaseSignOut(auth);
-      setUser(null); // Manually clear the user
+      // setUser(null) is handled automatically by the listener
     } catch (error) {
-      console.error("Error signing out (Context):", error);
+      console.error("Error signing out:", error);
     }
   };
 
@@ -87,7 +94,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   );
 };
 
-// The hook is the same
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {

@@ -75,7 +75,7 @@ export const ProviderListPage = () => {
       }
       if (Number.isNaN(date.getTime())) return "Invalid Date";
       return format(date, "MMM d, yyyy");
-    } catch (e) {
+    } catch {
       return "Invalid Date";
     }
   };
@@ -118,6 +118,7 @@ export const ProviderListPage = () => {
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
                   Joined On
                 </th>{" "}
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Rating</th>
                 {/* 3. Renamed column for clarity */}
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
                   Status
@@ -153,6 +154,15 @@ export const ProviderListPage = () => {
                     <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
                       {formatDate(provider.createdAt)}
                     </td>
+                    {/* Add this */}
+  <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-900 font-bold">
+    {provider.averageRating ? (
+      <span className="text-green-600">⭐ {provider.averageRating.toFixed(1)}</span>
+    ) : (
+      <span className="text-gray-400">New</span>
+    )}
+    {provider.ratingCount ? <span className="text-xs text-gray-500 ml-1">({provider.ratingCount})</span> : null}
+  </td>
                     <td className="whitespace-nowrap px-6 py-4 text-sm">
                       <span
                         className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${

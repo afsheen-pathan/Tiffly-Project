@@ -28,7 +28,7 @@ import {
   sendPushNotification,
   createNotification,
 } from "../../services/notificationService";
-import Icon from "react-native-vector-icons/MaterialCommunityIcons";
+import { MaterialCommunityIcons as Icon } from "@expo/vector-icons";
 import { format } from "date-fns";
 import { ReportFoodModal } from "../../components/ReportFoodModal"; // 1. Import the new modal
 
@@ -112,7 +112,6 @@ export const DashboardScreen = () => {
     return (
       <Card style={[styles.card, isDispatched && styles.cardDispatched]}>
         <Card.Content>
-          {/* ... (Existing Card Header: Name, Meal Tag) ... */}
           <View style={styles.cardHeader}>
             <Icon
               name="account-circle-outline"
@@ -127,32 +126,25 @@ export const DashboardScreen = () => {
                 styles.mealTag,
                 {
                   backgroundColor:
-                    item.mealType === "Lunch"
-                      ? theme.colors.secondaryContainer
-                      : theme.colors.tertiaryContainer,
+                    item.mealType === "Lunch" ? "#FFE8D9" : "#E0F2FF",
                 },
               ]}
             >
               <Icon
                 name={
-                  item.mealType === "Lunch" ? "weather-sunny" : "weather-night"
-                }
-                size={14}
-                color={
                   item.mealType === "Lunch"
-                    ? theme.colors.onSecondaryContainer
-                    : theme.colors.onTertiaryContainer
+                    ? "silverware-fork-knife"
+                    : "moon-waning-crescent"
                 }
+                size={16}
+                color={item.mealType === "Lunch" ? "#e53935" : "#0277BD"}
+                style={{ marginRight: 4 }}
               />
+
               <Text
                 style={[
                   styles.mealTagText,
-                  {
-                    color:
-                      item.mealType === "Lunch"
-                        ? theme.colors.onSecondaryContainer
-                        : theme.colors.onTertiaryContainer,
-                  },
+                  { color: item.mealType === "Lunch" ? "#e53935" : "#0277BD" },
                 ]}
               >
                 {item.mealType}
@@ -160,7 +152,6 @@ export const DashboardScreen = () => {
             </View>
           </View>
           <Divider style={styles.divider} />
-          {/* ... (Existing Card Details: Address, Plan) ... */}
           <View style={styles.detailRow}>
             <Icon
               name="map-marker-radius-outline"
@@ -181,9 +172,9 @@ export const DashboardScreen = () => {
             />
             <Text style={styles.detailText}>{item.planName}</Text>
           </View>
-          {/* Dispatch Button */}
           <Button
-            mode={isDispatched ? "outlined" : "contained-tonal"}
+            mode={isDispatched ? "outlined" : "contained"}
+            buttonColor={isDispatched ? undefined : "#e53935"}
             icon={isDispatched ? "check-all" : "send-check-outline"}
             style={styles.dispatchButton}
             onPress={() => handleDispatch(item)}
@@ -234,18 +225,21 @@ export const DashboardScreen = () => {
             <Text variant="bodyMedium" style={styles.dateHeader}>
               {todayDateFormatted}
             </Text>
-            {/* --- 3. Add Report Food Button --- */}
             <Button
               mode="contained"
               icon="food-off-outline"
               style={styles.reportButton}
-              labelStyle={{ color: "white" }} // Make text white
-              buttonColor={theme.colors.error} // Use a distinct color (e.g., red)
+              labelStyle={{
+                color: "#fff",
+                fontWeight: "700",
+                fontSize: 15,
+                letterSpacing: 0.5,
+              }}
+              buttonColor="#e53935"
               onPress={() => setIsReportModalVisible(true)}
             >
               Report Leftover Food
             </Button>
-            {/* ------------------------------- */}
           </View>
         }
         ListEmptyComponent={
@@ -274,70 +268,186 @@ export const DashboardScreen = () => {
   );
 };
 
-// --- STYLES (Add reportButton) ---
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f5f5f5" },
+  container: {
+    flex: 1,
+    backgroundColor: "#FAFAFA",
+  },
+
   centerContainer: {
     flexGrow: 1,
     justifyContent: "center",
     alignItems: "center",
     padding: 20,
   },
-  loader: { flex: 1, justifyContent: "center", alignItems: "center" },
+
+  loader: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
   errorText: {
     textAlign: "center",
-    color: "red",
+    color: "#D32F2F",
     fontSize: 16,
     marginBottom: 10,
+    fontWeight: "600",
   },
+
   emptyText: {
     textAlign: "center",
     marginTop: 16,
     fontSize: 18,
-    color: "gray",
+    color: "#666",
+    fontWeight: "600",
   },
+
   emptySubText: {
     textAlign: "center",
-    marginTop: 8,
+    marginTop: 6,
     fontSize: 14,
-    color: "darkgray",
+    color: "#999",
   },
+
+  // HEADER
   headerContainer: {
-    paddingHorizontal: 16,
-    paddingTop: 20,
-    paddingBottom: 10,
+    paddingHorizontal: 18,
+    paddingTop: 24,
+    paddingBottom: 14,
+    backgroundColor: "#FFFFFF",
     borderBottomWidth: 1,
-    borderBottomColor: "#e0e0e0",
-    backgroundColor: "#fff",
+    borderBottomColor: "#E6E6E6",
+
+    shadowColor: "#000",
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  listHeader: { fontWeight: "bold" },
-  dateHeader: { color: "gray", marginBottom: 16 }, // Add margin
+
+  listHeader: {
+    fontWeight: "800",
+    fontSize: 22,
+    color: "#222",
+    letterSpacing: 0.3,
+  },
+
+  dateHeader: {
+    color: "#777",
+    marginTop: 3,
+    marginBottom: 14,
+    fontSize: 14,
+  },
+
   reportButton: {
-    // Style for the new button
-    borderRadius: 8,
+    borderRadius: 12,
+    paddingVertical: 5,
   },
-  listContent: { paddingBottom: 16 },
-  card: { marginHorizontal: 12, marginTop: 12, elevation: 2, borderRadius: 8 },
-  cardDispatched: { backgroundColor: "#fafafa", opacity: 0.7 },
-  cardHeader: { flexDirection: "row", alignItems: "center", marginBottom: 10 },
-  customerName: { marginLeft: 10, fontWeight: "600", fontSize: 17, flex: 1 },
+
+  listContent: {
+    paddingBottom: 20,
+  },
+
+  // CARD
+  card: {
+    marginHorizontal: 14,
+    marginTop: 14,
+    borderRadius: 14,
+    backgroundColor: "#FFF",
+
+    shadowColor: "#000",
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 3,
+
+    paddingBottom: 10,
+  },
+
+  cardDispatched: {
+    backgroundColor: "#F3F3F3",
+    opacity: 0.85,
+  },
+
+  cardHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 10,
+  },
+
+  customerName: {
+    marginLeft: 10,
+    fontWeight: "700",
+    fontSize: 17,
+    color: "#1A1A1A",
+    flex: 1,
+  },
+
+  // Meal type tag
   mealTag: {
     flexDirection: "row",
     alignItems: "center",
-    borderRadius: 12,
-    paddingVertical: 3,
-    paddingHorizontal: 8,
-    marginLeft: "auto",
+    borderRadius: 18,
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+
+    backgroundColor: "#FFEBE0", // Soft orange background (premium)
+    shadowColor: "#000",
+    shadowOpacity: 0.06,
+    shadowRadius: 3,
+    elevation: 2,
   },
-  mealTagText: { marginLeft: 4, fontSize: 12, fontWeight: "500" },
-  divider: { marginVertical: 10, height: 1, backgroundColor: "#eee" },
+
+  mealTagText: {
+    marginLeft: 5,
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#e53935", // Orange text
+  },
+
+  divider: {
+    marginVertical: 12,
+    height: 1,
+    backgroundColor: "#EDEDED",
+  },
+
+  // DETAILS
   detailRow: {
     flexDirection: "row",
     alignItems: "flex-start",
-    marginBottom: 8,
+    marginBottom: 10,
   },
-  detailIcon: { marginRight: 10, marginTop: 3, color: "#555" },
-  addressText: { flex: 1, fontSize: 14, color: "#333", lineHeight: 21 },
-  detailText: { flex: 1, fontSize: 14, color: "#555", marginTop: 2 },
-  dispatchButton: { marginTop: 12, alignSelf: "flex-end" },
+
+  detailIcon: {
+    marginRight: 10,
+    marginTop: 3,
+    color: "#555",
+  },
+
+  addressText: {
+    flex: 1,
+    fontSize: 14,
+    color: "#333",
+    lineHeight: 21,
+  },
+
+  detailText: {
+    flex: 1,
+    fontSize: 14,
+    color: "#444",
+    marginTop: 2,
+  },
+
+  // DISPATCH BUTTON
+  dispatchButton: {
+    marginTop: 12,
+    alignSelf: "flex-end",
+    borderRadius: 10,
+    backgroundColor: "#e53935", 
+    paddingVertical: 4,
+
+    shadowColor: "#000",
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 3,
+  },
 });

@@ -354,27 +354,77 @@ export const WeeklyMenuScreen = () => {
   );
 };
 
-// --- STYLES ---
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 8, backgroundColor: "#f5f5f5" },
-  loader: { flex: 1, justifyContent: "center", alignItems: "center" },
-  card: { margin: 8, elevation: 2 },
-  input: { marginBottom: 12, backgroundColor: "#f9f9f9" },
-  errorText: {
-    color: "red",
-    fontSize: 12,
-    marginLeft: 8,
-    marginTop: -8,
-    marginBottom: 8,
+  container: {
+    flex: 1,
+    padding: 10,
+    backgroundColor: "#fafafa",
   },
-  saveButton: { marginTop: 20, paddingVertical: 4 },
+
+  loader: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
+  /* CARD */
+  card: {
+    margin: 12,
+    backgroundColor: "#ffffff",
+    borderRadius: 14,
+    elevation: 3,
+
+    shadowColor: "#000",
+    shadowOpacity: 0.08,
+    shadowRadius: 3,
+    shadowOffset: { width: 0, height: 2 },
+  },
+
+  /* TEXT INPUT */
+  input: {
+    marginBottom: 12,
+    backgroundColor: "#f4f4f4",
+    borderRadius: 8,
+  },
+
+  errorText: {
+    color: "#e53935",
+    fontSize: 12,
+    marginLeft: 6,
+    marginTop: -6,
+    marginBottom: 8,
+    fontWeight: "500",
+  },
+
+  /* SAVE BUTTON */
+  saveButton: {
+    marginTop: 20,
+    paddingVertical: 6,
+    backgroundColor: "#e53935",   // theme color
+    borderRadius: 8,
+  },
+
+  /* READ-ONLY ROW */
   row: {
     flexDirection: "row",
-    paddingVertical: 10,
+    paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: "#eee",
     alignItems: "center",
   },
-  dayLabel: { fontSize: 16, fontWeight: "bold", width: 100 },
-  menuText: { fontSize: 15, color: "#333", flex: 1, lineHeight: 22 },
+
+  dayLabel: {
+    width: 110,
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#e53935", // theme color
+  },
+
+  menuText: {
+    flex: 1,
+    fontSize: 15,
+    color: "#333",
+    lineHeight: 22,
+  },
 });
+

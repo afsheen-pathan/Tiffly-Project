@@ -15,8 +15,9 @@ import {
   Button,
   List,
   Divider,
-  useTheme, // Import useTheme
+  useTheme,
 } from "react-native-paper";
+import { MaterialIcons } from "@expo/vector-icons";
 import { RouteProp, useRoute } from "@react-navigation/native";
 import { HomeStackParamList } from "../../navigation/CustomerTabNavigator";
 import {
@@ -26,8 +27,9 @@ import {
   updateUserProfile,
   UserProfileDetails,
   UserProfile,
-  getUserActiveSubscription,
-  WeeklyMenu, // Import WeeklyMenu type
+  // --- 1. Import the CORRECT function ---
+  getActiveSubscriptionForPlan, 
+  WeeklyMenu,
 } from "../../services/userService";
 import { API_BASE_URL } from "../../config/api";
 import { useAuth } from "../../contexts/AuthContext";
@@ -61,7 +63,7 @@ export const ProviderDetailScreen = () => {
   const route = useRoute<ProviderDetailScreenRouteProp>();
   const { providerId } = route.params;
   const { user } = useAuth();
-  const theme = useTheme(); // Get theme for styling
+  const theme = useTheme();
 
   const [profile, setProfile] = useState<FullProviderProfile | null>(null);
   const [plans, setPlans] = useState<Plan[]>([]);
@@ -96,20 +98,14 @@ export const ProviderDetailScreen = () => {
     fetchData();
   }, [providerId]);
 
-  // --- ADDED proceedToCheckout function ---
+  // --- proceedToCheckout function ---
   const proceedToCheckout = useCallback(
     async (plan: Plan) => {
       if (!user || !plan.id) return;
-      // Note: setIsSubscribing is already set in handleSubscribe
-      console.log(
-        `[${new Date().toISOString()}] Proceeding to checkout for plan: ${
-          plan.id
-        }`
-      );
+      setIsSubscribing(plan.id);
+      console.log(`[${new Date().toISOString()}] Proceeding to checkout for plan: ${plan.id}`);
       try {
-        console.log(
-          `[${new Date().toISOString()}] Calling backend: ${API_BASE_URL}/create-checkout-session`
-        );
+        console.log(`[${new Date().toISOString()}] Calling backend: ${API_BASE_URL}/create-checkout-session`);
         const response = await fetch(
           `${API_BASE_URL}/create-checkout-session`,
           {
@@ -125,11 +121,7 @@ export const ProviderDetailScreen = () => {
             }),
           }
         );
-        console.log(
-          `[${new Date().toISOString()}] Backend response status: ${
-            response.status
-          }`
-        );
+        console.log(`[${new Date().toISOString()}] Backend response status: ${response.status}`);
 
         if (!response.ok) {
             const errorText = await response.text();
@@ -143,18 +135,11 @@ export const ProviderDetailScreen = () => {
         }
 
         const data = await response.json();
-        console.log(
-          `[${new Date().toISOString()}] Backend response data:`,
-          data
-        );
+        console.log(`[${new Date().toISOString()}] Backend response data:`, data);
         if (!data.checkoutUrl) {
           throw new Error(data.error || `Failed to get checkout URL`);
         }
         const checkoutUrl = data.checkoutUrl;
-        console.log(
-          `[${new Date().toISOString()}] Received Stripe Checkout URL:`,
-          checkoutUrl
-        );
         const supported = await Linking.canOpenURL(checkoutUrl);
         if (supported) {
           await Linking.openURL(checkoutUrl);
@@ -162,21 +147,17 @@ export const ProviderDetailScreen = () => {
           Alert.alert("Error", `Cannot open Stripe Checkout URL.`);
         }
       } catch (err: any) {
-        console.error(
-          `[${new Date().toISOString()}] Subscription Error Caught:`,
-          err
-        );
+        console.error(`[${new Date().toISOString()}] Subscription Error Caught:`, err);
         Alert.alert("Subscription Failed", err.message || "Could not initiate checkout.");
       } finally {
         setIsSubscribing(null);
         setSelectedPlanForSubscription(null);
       }
     },
-    [user, providerId] // Dependencies
+    [user, providerId]
   );
-  // --- END proceedToCheckout ---
 
-  // --- ADDED handleSubscribe function ---
+  // --- handleSubscribe function ---
   const handleSubscribe = async (plan: Plan) => {
     if (!user || !plan.id || isSubscribing) return;
 
@@ -187,12 +168,14 @@ export const ProviderDetailScreen = () => {
       console.log(
         `Checking for existing sub: User ${user.uid}, Provider ${providerId}, Plan ${plan.id}`
       );
+      // --- 2. FIX: Call the new, correct function ---
       const { subscription: existingSub, error: subCheckError } =
-        await getUserActiveSubscription(
+        await getActiveSubscriptionForPlan(
             user.uid,
             providerId,
             plan.id
         );
+      // --- END FIX ---
 
       if (subCheckError) {
         Alert.alert("Database Error", subCheckError);
@@ -240,9 +223,8 @@ export const ProviderDetailScreen = () => {
       setSelectedPlanForSubscription(null);
     }
   };
-  // --- END handleSubscribe ---
 
-  // --- ADDED handleDetailsSubmit function ---
+  // --- handleDetailsSubmit function ---
   const handleDetailsSubmit = async (details: UserProfileDetails) : Promise<{ success: boolean; error?: string }> => {
     if (!user || !selectedPlanForSubscription) {
       return { success: false, error: 'User or Plan context lost.' };
@@ -250,12 +232,10 @@ export const ProviderDetailScreen = () => {
     const result = await updateUserProfile(user.uid, details);
     if (result.success) {
       console.log("User details saved, now proceeding to checkout.");
-      proceedToCheckout(selectedPlanForSubscription); // Don't await, let it run
+      proceedToCheckout(selectedPlanForSubscription);
     }
-    return result; // Return result of the profile update
+    return result;
   };
-  // --- END handleDetailsSubmit ---
-
 
   // --- Rendering ---
   if (loading) { return <ActivityIndicator animating={true} style={styles.loader} size="large" />; }
@@ -274,6 +254,18 @@ export const ProviderDetailScreen = () => {
             <Text variant="headlineSmall" style={styles.kitchenName}>
               {profile.kitchenName}
             </Text>
+            <View style={styles.badgeRow}>
+  <View style={styles.badge}>
+    <MaterialIcons name="restaurant-menu" size={16} color="#e53935" />
+    <Text style={styles.badgeText}>{profile.cuisineType}</Text>
+  </View>
+
+  <View style={styles.badge}>
+    <MaterialIcons name="location-pin" size={16} color="#e53935" />
+    <Text style={styles.badgeText}>{profile.city}</Text>
+  </View>
+</View>
+
             <Text style={styles.detailText}>
               <Text style={styles.detailLabel}>Cuisine:</Text>{" "}
               {profile.cuisineType}
@@ -368,58 +360,226 @@ export const ProviderDetailScreen = () => {
   );
 };
 
-// --- STYLES ---
+
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f5f5f5" },
-  loader: { flex: 1, justifyContent: "center", alignItems: "center" },
-  errorText: { textAlign: "center", marginTop: 50, color: "red", fontSize: 16 },
-  headerImage: { width: "100%", height: 200 },
-  card: { margin: 12, marginTop: -40, elevation: 4 },
-  kitchenName: { fontWeight: "bold", marginBottom: 8 },
-  detailText: { fontSize: 14, color: "#333", marginBottom: 4 },
-  detailLabel: { fontWeight: "bold", color: "#555" },
-  description: { marginTop: 10, fontSize: 14, color: "#666", lineHeight: 20 },
-  plansHeader: {
-    marginTop: 20,
-    marginBottom: 10,
-    marginLeft: 16,
+  container: {
+    flex: 1,
+    backgroundColor: "#F8F8F8",
+  },
+
+  loader: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
+  errorText: {
+    textAlign: "center",
+    marginTop: 40,
+    color: "red",
+    fontSize: 16,
+  },
+
+  headerImage: {
+    width: "100%",
+    height: 250,
+  },
+
+  /* ------------------------------
+      PROVIDER INFO CARD (Premium)
+  ------------------------------ */
+  card: {
+    marginHorizontal: 16,
+    marginTop: -40,
+    borderRadius: 16,
+    backgroundColor: "#ffffff",
+    elevation: 7,
+    paddingBottom: 14,
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 6,
+  },
+
+  kitchenName: {
+    fontWeight: "800",
+    fontSize: 24,
+    color: "#1A1A1A",
+    marginBottom: 12,
+  },
+
+  // Premium badges (Cuisine + Location)
+  badgeRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    marginTop: 6,
+    marginBottom: 4,
+  },
+
+  badge: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFF3E0",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 20,
+    marginRight: 10,
+    marginBottom: 6,
+  },
+
+  badgeIcon: {
+    marginRight: 4,
+  },
+
+  badgeText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#e53935",
+  },
+
+  // Premium rating badge (Orange gradient)
+  ratingContainer: {
+    alignSelf: "flex-start",
+    backgroundColor: "#ff6c43ff",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 4,
+  },
+
+  ratingText: {
+    color: "#fff",
+    fontWeight: "700",
+    fontSize: 13,
+    marginRight: 4,
+  },
+
+  detailText: {
+    fontSize: 15,
+    color: "#444",
+    marginBottom: 4,
+  },
+
+  detailLabel: {
     fontWeight: "bold",
+    color: "#666",
   },
-  noPlansText: { textAlign: "center", color: "gray", marginVertical: 20, paddingHorizontal: 12 },
-  noMenuText: { textAlign: "center", color: "gray", padding: 10 },
-  listSection: {
-    backgroundColor: "#fff",
-    marginHorizontal: 12,
-    marginBottom: 20,
-    borderRadius: 8,
-    elevation: 1,
+
+  description: {
+    marginTop: 10,
+    fontSize: 15,
+    color: "#666",
+    lineHeight: 22,
   },
-  listItem: { paddingVertical: 8 },
-  planTitle: { fontWeight: "bold", marginBottom: 4 },
-  planDescription: { fontSize: 13, color: "gray" },
-  subscribeButton: { alignSelf: "center", marginRight: 8 },
-  subscribeButtonLabel: { fontSize: 12 },
+
+  plansHeader: {
+    marginTop: 28,
+    marginBottom: 12,
+    marginLeft: 18,
+    fontWeight: "bold",
+    fontSize: 20,
+    color: "#222",
+  },
+
+  /* ------------------------------
+          WEEKLY MENU CARD
+  ------------------------------ */
   menuCard: {
-    marginHorizontal: 12,
-    elevation: 1,
-    marginBottom: 10, // Add margin
+    marginHorizontal: 16,
+    borderRadius: 14,
+    backgroundColor: "#fff",
+    elevation: 3,
+    marginBottom: 18,
+    paddingBottom: 6,
   },
+
   menuRow: {
-    flexDirection: 'row',
-    paddingVertical: 10,
+    flexDirection: "row",
+    paddingVertical: 12,
+    paddingHorizontal: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-    alignItems: 'center',
+    borderBottomColor: "#eee",
+    alignItems: "flex-start",
   },
+
   dayLabel: {
     fontSize: 15,
-    fontWeight: 'bold',
+    fontWeight: "700",
     width: 90,
+    color: "#FF7043",
   },
+
   menuText: {
     fontSize: 14,
-    color: '#333',
+    color: "#333",
     flex: 1,
     lineHeight: 20,
   },
+
+  noMenuText: {
+    textAlign: "center",
+    padding: 10,
+    color: "gray",
+  },
+
+  /* ------------------------------
+              PLANS LIST
+  ------------------------------ */
+  listSection: {
+    backgroundColor: "#fff",
+    marginHorizontal: 16,
+    marginBottom: 22,
+    borderRadius: 14,
+    elevation: 2,
+  },
+
+  listItem: {
+    paddingVertical: 14,
+    paddingRight: 0,
+  },
+
+  planTitle: {
+    fontWeight: "800",
+    fontSize: 16,
+    color: "#222",
+    flexShrink: 1,
+    flexWrap: "wrap",
+  },
+
+  planDescription: {
+    fontSize: 13,
+    color: "#666",
+    flexWrap: "wrap",
+    lineHeight: 19,
+    marginTop: 6,
+  },
+
+  noPlansText: {
+    textAlign: "center",
+    color: "gray",
+    marginVertical: 20,
+  },
+
+  /* ------------------------------
+           SUBSCRIBE BUTTON
+  ------------------------------ */
+  subscribeButton: {
+    borderRadius: 10,
+    height: 40,
+    justifyContent: "center",
+    backgroundColor: "#e53935",
+    paddingHorizontal: 16,
+    alignSelf: "center",
+    marginRight: 10,
+  },
+
+  subscribeButtonLabel: {
+    color: "#fff",
+    fontWeight: "700",
+    fontSize: 14,
+    textTransform: "none",
+  },
 });
+

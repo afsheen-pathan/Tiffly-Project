@@ -318,6 +318,8 @@ export type PublicProviderProfile = {
   city: string;
   cuisineType: string;
   kitchenImageUrl?: string;
+  averageRating?: number;
+  ratingCount?: number;
 };
 export type FullProviderProfile = {
   id: string;
@@ -328,16 +330,15 @@ export type FullProviderProfile = {
   kitchenDescription?: string;
   streetAddress?: string;
   weeklyMenu?: WeeklyMenu | null;
+  averageRating?: number;
+  ratingCount?: number;
 };
 
 // --- Get Approved Providers (for Customer Home) ---
-export const getApprovedProviders = async (): Promise<{
-  providers: PublicProviderProfile[];
-  error?: any;
-}> => {
+export const getApprovedProviders = async (): Promise<{ providers: PublicProviderProfile[]; error?: any }> => {
   try {
-    const providersRef = collection(db, "providerProfiles");
-    const q = query(providersRef, where("status", "==", "approved"));
+    const providersRef = collection(db, 'providerProfiles');
+    const q = query(providersRef, where('status', '==', 'approved'));
     const querySnapshot = await getDocs(q);
     const providerList: PublicProviderProfile[] = [];
     querySnapshot.forEach((docSnap) => {
@@ -349,6 +350,10 @@ export const getApprovedProviders = async (): Promise<{
           city: data.city,
           cuisineType: data.cuisineType,
           kitchenImageUrl: data.kitchenImageUrl,
+          // --- THIS IS THE FIX: Map the rating data ---
+          averageRating: data.averageRating,
+          ratingCount: data.ratingCount,
+          // ------------------------------------------
         });
       }
     });
@@ -391,6 +396,10 @@ export const getProviderDetailsAndPlans = async (
       kitchenImageUrl: providerData.kitchenImageUrl,
       kitchenDescription: providerData.kitchenDescription,
       streetAddress: providerData.streetAddress,
+      // --- Map rating here too ---
+      averageRating: providerData.averageRating,
+      ratingCount: providerData.ratingCount,
+      // -------------------------
     };
     const plansRef = collection(db, "providerProfiles", providerId, "plans");
     const plansQuery = query(plansRef, orderBy("createdAt", "desc"));
@@ -431,118 +440,131 @@ export type Subscription = {
   stripeSubscriptionId?: string;
   stripeCheckoutSessionId?: string;
 };
-export const getUserActiveSubscription = async (
+export const getUserActiveSubscriptions = async (
   userId: string,
-  providerId?: string,
-  planId?: string
-): Promise<{ subscription: Subscription | null; error?: string }> => {
+): Promise<{ subscriptions: Subscription[] | null; error?: string }> => {
   try {
-    const subsRef = collection(db, "subscriptions");
+    const subsRef = collection(db, 'subscriptions');
+    const now = Timestamp.now(); // Get current Firestore timestamp
+
+    // Query for active/paused subscriptions where the endDate is in the future
     const conditions = [
-      where("userId", "==", userId),
-      where("status", "in", ["active", "paused"]),
+      where('userId', '==', userId),
+      where('status', 'in', ['active', 'paused']),
+      where('endDate', '>=', now) // --- THIS IS THE AUTO-EXPIRY FIX ---
     ];
-    if (providerId) {
-      conditions.push(where("providerId", "==", providerId));
-    }
-    if (planId) {
-      conditions.push(where("planId", "==", planId));
-    }
+
     const q = query(
       subsRef,
       ...conditions,
-      orderBy("createdAt", "desc"),
-      limit(1)
+      orderBy('endDate', 'asc'), // Show soonest-to-expire first
     );
-    console.log(`[getUserActiveSubscription] Querying for user ${userId}...`);
+
+    console.log(`[getUserActiveSubscriptions] Querying for user ${userId}...`);
+    const querySnapshot = await getDocs(q);
+
+    if (querySnapshot.empty) {
+      console.log(`[getUserActiveSubscriptions] No active subscriptions found.`);
+      return { subscriptions: [] }; // Return empty array
+    }
+
+    // --- Fetch kitchenName for EACH subscription in parallel ---
+    const subscriptionPromises = querySnapshot.docs.map(async (docSnap) => {
+      let subscriptionData = { id: docSnap.id, ...docSnap.data() } as Subscription;
+      
+      if (subscriptionData.providerId) {
+        try {
+            const providerDocRef = doc(db, 'providerProfiles', subscriptionData.providerId);
+            const providerDoc = await getDoc(providerDocRef);
+            subscriptionData.kitchenName = providerDoc.exists() ? providerDoc.data().kitchenName || 'N/A' : 'N/A';
+        } catch (providerError) {
+            subscriptionData.kitchenName = 'Error';
+        }
+      }
+      return subscriptionData;
+    });
+
+    const subscriptions = await Promise.all(subscriptionPromises);
+    
+    console.log(`[getUserActiveSubscriptions] Found ${subscriptions.length} active subscriptions.`);
+    return { subscriptions };
+
+  } catch (error: any) {
+    if (error.code === 'failed-precondition') {
+         const indexUrlMatch = error.message.match(/(https:\/\/[^\s]+)/);
+         const indexUrl = indexUrlMatch ? indexUrlMatch[0] : 'Check Firebase Console';
+         return { subscriptions: null, error: `Database query requires an index. Create it: ${indexUrl}` };
+    }
+    console.error(`[getUserActiveSubscriptions] Error fetching for user ${userId}:`, error);
+    return { subscriptions: null, error: 'Failed to load subscriptions.' };
+  }
+};
+// --- *** END MODIFICATION *** ---
+
+// This function is now only used for the subscription blocking check
+export const getActiveSubscriptionForPlan = async (
+  userId: string,
+  providerId: string,
+  planId: string
+): Promise<{ subscription: Subscription | null; error?: string }> => {
+  try {
+    const subsRef = collection(db, 'subscriptions');
+    const conditions = [
+      where('userId', '==', userId),
+      where('status', 'in', ['active', 'paused']),
+      where('providerId', '==', providerId),
+      where('planId', '==', planId),
+    ];
+    const q = query( subsRef, ...conditions, limit(1) );
+    
     const querySnapshot = await getDocs(q);
     if (querySnapshot.empty) {
-      console.log(
-        `[getUserActiveSubscription] No matching subscription found.`
-      );
       return { subscription: null };
     }
     const docSnap = querySnapshot.docs[0];
-    let subscriptionData = {
-      id: docSnap.id,
-      ...docSnap.data(),
-    } as Subscription;
-    const effectiveProviderId = providerId || subscriptionData.providerId;
-    if (effectiveProviderId) {
-      try {
-        const providerDocRef = doc(db, "providerProfiles", effectiveProviderId);
-        const providerDoc = await getDoc(providerDocRef);
-        subscriptionData.kitchenName = providerDoc.exists()
-          ? providerDoc.data().kitchenName || "N/A"
-          : "N/A";
-      } catch (providerError) {
-        subscriptionData.kitchenName = "Error";
-      }
-    }
-    if (!subscriptionData.planName || !subscriptionData.endDate) {
-      console.error(
-        "[getUserActiveSubscription] Incomplete data:",
-        subscriptionData
-      );
-      return { subscription: null, error: "Incomplete subscription data." };
-    }
-    console.log(
-      `[getUserActiveSubscription] Found subscription: ${subscriptionData.id}`
-    );
-    return { subscription: subscriptionData };
+    return { subscription: { id: docSnap.id, ...docSnap.data() } as Subscription };
+    
   } catch (error: any) {
-    if (error.code === "failed-precondition") {
-      const indexUrlMatch = error.message.match(/(https:\/\/[^\s]+)/);
-      const indexUrl = indexUrlMatch
-        ? indexUrlMatch[0]
-        : "Check Firebase Console";
-      return {
-        subscription: null,
-        error: `Database query requires an index. Create it: ${indexUrl}`,
-      };
+    if (error.code === 'failed-precondition') {
+         const indexUrlMatch = error.message.match(/(https:\/\/[^\s]+)/);
+         const indexUrl = indexUrlMatch ? indexUrlMatch[0] : 'Check Firebase Console';
+         return { subscription: null, error: `Database query requires an index. Create it: ${indexUrl}` };
     }
-    console.error(
-      `[getUserActiveSubscription] Error fetching for user ${userId}:`,
-      error
-    );
-    return { subscription: null, error: "Failed to load subscription." };
+    console.error(`[getActiveSubscriptionForPlan] Error fetching:`, error);
+    return { subscription: null, error: 'Failed to load subscription.' };
   }
 };
+
+
 export const updateSubscriptionStatus = async (
-  subscriptionId: string,
-  newStatus: "active" | "paused",
-  pauseEndDate?: Date | null,
-  daysPaused?: number
+    subscriptionId: string,
+    newStatus: 'active' | 'paused',
+    pauseEndDate?: Date | null,
+    daysPaused?: number
 ): Promise<{ success: boolean; error?: string }> => {
   try {
-    const subDocRef = doc(db, "subscriptions", subscriptionId);
+    const subDocRef = doc(db, 'subscriptions', subscriptionId);
     const updateData: any = {
-      status: newStatus,
-      pausedUntil: pauseEndDate ? Timestamp.fromDate(pauseEndDate) : null,
-      updatedAt: serverTimestamp(),
+        status: newStatus,
+        pausedUntil: pauseEndDate ? Timestamp.fromDate(pauseEndDate) : null,
+        updatedAt: serverTimestamp(),
     };
-    if (newStatus === "paused" && daysPaused && daysPaused > 0) {
-      const subDoc = await getDoc(subDocRef);
-      if (subDoc.exists()) {
-        const currentEndDate = (subDoc.data().endDate as Timestamp).toDate();
-        const newEndDate = new Date(currentEndDate);
-        newEndDate.setDate(currentEndDate.getDate() + daysPaused);
-        updateData.endDate = Timestamp.fromDate(newEndDate);
-        console.log(
-          `Extended subscription ${subscriptionId} end date by ${daysPaused} days`
-        );
-      } else {
-        throw new Error("Subscription document not found.");
-      }
+    if (newStatus === 'paused' && daysPaused && daysPaused > 0) {
+        const subDoc = await getDoc(subDocRef);
+        if (subDoc.exists()) {
+            const currentEndDate = (subDoc.data().endDate as Timestamp).toDate();
+            const newEndDate = new Date(currentEndDate);
+            newEndDate.setDate(currentEndDate.getDate() + daysPaused);
+            updateData.endDate = Timestamp.fromDate(newEndDate);
+            console.log(`Extended subscription ${subscriptionId} end date by ${daysPaused} days`);
+        } else { throw new Error("Subscription document not found."); }
     }
     await updateDoc(subDocRef, updateData);
-    console.log(
-      `Subscription ${subscriptionId} status updated to ${newStatus}`
-    );
+    console.log(`Subscription ${subscriptionId} status updated to ${newStatus}`);
     return { success: true };
   } catch (error: any) {
     console.error("Error updating subscription status:", error);
-    return { success: false, error: "Failed to update subscription status." };
+    return { success: false, error: 'Failed to update subscription status.' };
   }
 };
 
@@ -553,19 +575,18 @@ export type DailyDelivery = {
   customerName: string;
   customerAddress: string;
   planName: string;
-  mealType: "Lunch" | "Dinner" | "N/A";
+  mealType: 'Lunch' | 'Dinner' | 'N/A';
 };
-export const getTodaysDeliveries = async (
-  providerId: string
-): Promise<{ deliveries: DailyDelivery[]; error?: string }> => {
+export const getTodaysDeliveries = async (providerId: string): Promise<{ deliveries: DailyDelivery[]; error?: string }> => {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   try {
-    const subsRef = collection(db, "subscriptions");
+    const subsRef = collection(db, 'subscriptions');
     const q = query(
       subsRef,
-      where("providerId", "==", providerId),
-      where("status", "==", "active")
+      where('providerId', '==', providerId),
+      where('status', '==', 'active'),
+      where('endDate', '>=', Timestamp.now()) // --- Auto-expiry fix for provider ---
     );
     const querySnapshot = await getDocs(q);
     const deliveryList: DailyDelivery[] = [];
@@ -579,56 +600,30 @@ export const getTodaysDeliveries = async (
       }
       dataFetchPromises.push(
         Promise.all([
-          getDoc(doc(db, "users", subData.userId)),
-          getDoc(
-            doc(
-              db,
-              "providerProfiles",
-              subData.providerId,
-              "plans",
-              subData.planId
-            )
-          ),
-        ])
-          .then(([userDoc, planDoc]) => {
-            const customerName = userDoc.exists()
-              ? (userDoc.data() as UserProfile).name || "N/A"
-              : "User Not Found";
-            const customerAddress = userDoc.exists()
-              ? (userDoc.data() as UserProfile).address || "Address not set"
-              : "N/A";
-            const mealType = planDoc.exists()
-              ? (planDoc.data() as Plan).mealType
-              : "N/A";
-            deliveryList.push({
-              subscriptionId: subData.id,
-              userId: subData.userId,
-              customerName: customerName,
-              customerAddress: customerAddress,
-              planName: subData.planName,
-              mealType: mealType,
-            });
-          })
-          .catch((err) => {
-            console.error(
-              `Failed to fetch details for sub ${subData.id}:`,
-              err
-            );
-          })
+          getDoc(doc(db, 'users', subData.userId)),
+          getDoc(doc(db, 'providerProfiles', subData.providerId, 'plans', subData.planId))
+        ]).then(([userDoc, planDoc]) => {
+          const customerName = userDoc.exists() ? (userDoc.data() as UserProfile).name || 'N/A' : 'User Not Found';
+          const customerAddress = userDoc.exists() ? (userDoc.data() as UserProfile).address || 'Address not set' : 'N/A';
+          const mealType = planDoc.exists() ? (planDoc.data() as Plan).mealType : 'N/A';
+          deliveryList.push({
+            subscriptionId: subData.id,
+            userId: subData.userId,
+            customerName: customerName,
+            customerAddress: customerAddress,
+            planName: subData.planName,
+            mealType: mealType,
+          });
+        }).catch(err => { console.error(`Failed to fetch details for sub ${subData.id}:`, err); })
       );
     });
     await Promise.all(dataFetchPromises);
-    console.log(
-      `Found ${deliveryList.length} deliveries for today for provider ${providerId}`
-    );
+    console.log(`Found ${deliveryList.length} deliveries for today for provider ${providerId}`);
     deliveryList.sort((a, b) => a.customerName.localeCompare(b.customerName));
     return { deliveries: deliveryList };
   } catch (error: any) {
-    console.error(
-      `Error fetching today's deliveries for provider ${providerId}:`,
-      error
-    );
-    return { deliveries: [], error: "Failed to load delivery list." };
+    console.error(`Error fetching today's deliveries for provider ${providerId}:`, error);
+    return { deliveries: [], error: 'Failed to load delivery list.' };
   }
 };
 

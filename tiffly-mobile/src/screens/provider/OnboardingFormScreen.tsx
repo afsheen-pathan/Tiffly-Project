@@ -358,39 +358,88 @@ export const OnboardingFormScreen = ({ onProfileSubmit }: Props) => {
   );
 };
 
-// 5. --- STYLES ---
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
-    backgroundColor: "#fff",
+    backgroundColor: "#fafafa",
   },
+
+  /* ------ HEADINGS ------ */
   title: {
     textAlign: "center",
-    marginBottom: 8,
+    fontSize: 24,
+    fontWeight: "700",
+    marginBottom: 6,
+    color: "#e53935",
   },
   subtitle: {
     textAlign: "center",
-    marginBottom: 24,
+    fontSize: 14,
+    color: "#666",
+    marginBottom: 22,
   },
+
+  /* ------ INPUT FIELDS ------ */
   input: {
-    marginBottom: 8,
+    marginBottom: 12,
+    backgroundColor: "#ffffff",
+    borderRadius: 10,
+    elevation: 1,
+
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    shadowOffset: { width: 0, height: 2 },
   },
+
+  /* ------ IMAGE PREVIEW ------ */
   imagePreview: {
     width: "100%",
-    height: 200,
-    borderRadius: 8,
-    marginBottom: 8,
+    height: 190,
+    borderRadius: 12,
+    marginBottom: 10,
+    borderWidth: 2,
+    borderColor: "#e53935",
   },
-  button: {
-    marginTop: 16,
-    paddingVertical: 4,
-    marginBottom: 40,
+
+  /* ------ PICKER STYLING ------ */
+  pickerWrapper: {
+    borderWidth: 1.4,
+    borderColor: "#ddd",
+    backgroundColor: "#ffffff",
+    borderRadius: 10,
+    marginBottom: 14,
+    overflow: "hidden",
+
+    elevation: 1,
+    shadowColor: "#000",
+    shadowOpacity: 0.08,
+    shadowRadius: 2,
+    shadowOffset: { width: 0, height: 1 },
   },
+
+  /* Error version of picker wrapper */
+  pickerError: {
+    borderColor: "#e53935",
+  },
+
+  /* ------ ERROR TEXT ------ */
   errorText: {
-    color: "red",
-    alignSelf: "flex-start",
+    color: "#e53935",
+    fontSize: 12,
     marginLeft: 4,
+    marginTop: -6,
     marginBottom: 8,
+    fontWeight: "500",
+  },
+
+  /* ------ SUBMIT BUTTON ------ */
+  button: {
+    marginTop: 22,
+    paddingVertical: 6,
+    borderRadius: 12,
+    backgroundColor: "#e53935",
   },
 });
+
