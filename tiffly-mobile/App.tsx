@@ -10,6 +10,7 @@ import { en, registerTranslation } from 'react-native-paper-dates';
 import * as Notifications from 'expo-notifications';
 import { NavigationContainerRef } from '@react-navigation/native';
 
+
 registerTranslation('en', en);
 
 LogBox.ignoreLogs([

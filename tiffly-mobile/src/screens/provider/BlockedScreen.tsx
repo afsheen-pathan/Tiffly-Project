@@ -1,14 +1,16 @@
 // src/screens/provider/BlockedScreen.tsx
 import React from "react";
 import { View, StyleSheet } from "react-native";
-import { Text, Icon, useTheme } from "react-native-paper";
+import { Text, useTheme } from "react-native-paper";
+// 1. Import the icon library correctly for Expo
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 export const BlockedScreen = () => {
   const theme = useTheme();
   return (
     <View style={styles.container}>
       <View style={styles.iconWrapper}>
-        <Icon source="lock-outline" size={48} color="#e53935" />
+        <MaterialCommunityIcons name="lock-outline" size={48} color="#e53935" />
       </View>
       <Text variant="headlineMedium" style={styles.title}>
         Feature Locked
@@ -42,6 +44,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.08,
     shadowRadius: 4,
     shadowOffset: { width: 0, height: 2 },
+    elevation: 4, // Added elevation for Android shadow
   },
 
   title: {

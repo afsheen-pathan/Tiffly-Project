@@ -1,154 +1,201 @@
 // src/pages/ApprovedProvidersPage.tsx
-import { useState, useEffect, useCallback } from 'react';
+
+import { useState, useEffect, useCallback } from "react";
 import {
   getAllApprovedProviders,
   setProviderStatus,
-} from '../services/adminUserService';
-import type { ProviderListData } from '../services/adminUserService';
-import type { ProviderStatus } from '../services/adminUserService';
-import { format } from 'date-fns';
-import { Timestamp } from 'firebase/firestore'; // Import Timestamp for formatDate helper
+} from "../services/adminUserService";
+import type { ProviderListData, ProviderStatus } from "../services/adminUserService";
+import { Timestamp } from "firebase/firestore";
+import { format } from "date-fns";
 
 export const ApprovedProvidersPage = () => {
   const [providers, setProviders] = useState<ProviderListData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Wrap fetch in useCallback so it can be called by handlers and useEffect
+  /** Fetch data with useCallback */
   const fetchData = useCallback(async () => {
     setLoading(true);
     setError(null);
-    // This service function now fetches 'approved', 'suspended', AND 'deactivated'
-    const { providers: fetchedProviders, error: fetchError } = await getAllApprovedProviders();
-    if (fetchError) {
-      setError(fetchError);
-    } else {
-      setProviders(fetchedProviders);
-    }
-    setLoading(false);
-  }, []); // Empty dependency array, fetch is stable
 
-  // Fetch data when the component mounts
+    const { providers: data, error: fetchError } = await getAllApprovedProviders();
+
+    if (fetchError) setError(fetchError);
+    else setProviders(data);
+
+    setLoading(false);
+  }, []);
+
   useEffect(() => {
     fetchData();
   }, [fetchData]);
 
-  // Handler for status change buttons
-  const handleStatusChange = async (providerId: string, newStatus: ProviderStatus) => {
-    let confirmMessage = `Are you sure you want to ${newStatus} this provider?`;
-    if (newStatus === 'deactivated') {
-        confirmMessage += "\n\nWARNING: This action is permanent and will hide them from customers.";
+  /** Format date helper */
+  const formatDate = (ts: any) => {
+    try {
+      let date: Date;
+
+      if (ts instanceof Timestamp) date = ts.toDate();
+      else if (ts instanceof Date) date = ts;
+      else date = new Date(String(ts));
+
+      return isNaN(date.getTime()) ? "Invalid Date" : format(date, "MMM d, yyyy");
+    } catch {
+      return "Invalid Date";
     }
-    
-    if (!window.confirm(confirmMessage)) {
-      return;
+  };
+
+  /** Change provider status */
+  const handleStatusChange = async (providerId: string, newStatus: ProviderStatus) => {
+    let confirmText = `Are you sure you want to ${newStatus} this provider?`;
+
+    if (newStatus === "deactivated") {
+      confirmText +=
+        "\n\nThis removes them permanently from customer view. Proceed?";
     }
 
-    const { success, error: updateError } = await setProviderStatus(providerId, newStatus);
-    if (updateError) {
-      alert(`Failed: ${updateError}`);
-    } else {
-      alert(`Provider status updated to ${newStatus}.`);
-      // Refetch the list to show the change
+    if (!window.confirm(confirmText)) return;
+
+    const { success, error: updateError } = await setProviderStatus(
+      providerId,
+      newStatus
+    );
+
+    if (!success) alert(updateError);
+    else {
+      alert(`Provider updated to ${newStatus}.`);
       fetchData();
     }
   };
 
-  // Helper to format Firestore Timestamp or Date
-  const formatDate = (timestamp: unknown): string => {
-    if (!timestamp) return 'N/A';
-    try {
-      let date: Date;
-      if (timestamp instanceof Timestamp) { date = timestamp.toDate(); }
-      else if (timestamp instanceof Date) { date = timestamp; }
-      else { date = new Date(String(timestamp)); }
-      if (Number.isNaN(date.getTime())) return 'Invalid Date';
-      return format(date, 'MMM d, yyyy');
-    } catch (e) { return 'Invalid Date'; }
-  };
-
   return (
     <div>
-      <h1 className="mb-6 text-2xl font-semibold text-gray-800">Manage Providers</h1>
-      <p className="mb-4 text-sm text-gray-600">This list includes Approved, Suspended, and Deactivated providers.</p>
+      {/* Page Header */}
+      <div className="mb-6">
+        <h1 className="text-2xl font-semibold text-gray-900">Manage Providers</h1>
+        <p className="text-sm text-gray-500">
+          View and manage all Approved, Suspended, and Deactivated providers.
+        </p>
+      </div>
 
-      {/* Loading State */}
-      {loading && <p>Loading providers...</p>}
+      {loading && (
+        <p className="text-gray-600 text-sm">Loading provider list...</p>
+      )}
 
-      {/* Index Error Display */}
-      {error?.includes('index') && (
-           <div className="my-4 rounded border border-yellow-400 bg-yellow-100 p-4 text-yellow-700">
-             <p className="font-bold">Action Required:</p>
-             <p>{error}</p>
-             <p className="mt-2">Please create the required Firestore index and refresh.</p>
-           </div>
-       )}
-      {/* Other Error Display */}
-       {error && !error.includes('index') && <p className="text-red-500">{error}</p>}
+      {error && (
+        <div className="my-4 rounded-lg border border-red-300 bg-red-50 p-4 text-red-700">
+          {error.includes("index") && <strong>Firestore Index Required:</strong>}
+          <p>{error}</p>
+        </div>
+      )}
 
-      {/* Content Table */}
       {!loading && !error && (
-        <div className="overflow-x-auto rounded-lg bg-white shadow">
+        <div className="overflow-x-auto rounded-xl bg-white shadow-sm border border-gray-200">
           <table className="min-w-full divide-y divide-gray-200">
+            {/* TABLE HEADER */}
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Kitchen Name</th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Provider Name</th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">City</th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Actions</th>
+                {[
+                  "Kitchen Name",
+                  "Provider Name",
+                  "City",
+                  "Status",
+                  "Actions",
+                ].map((header) => (
+                  <th
+                    key={header}
+                    className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600"
+                  >
+                    {header}
+                  </th>
+                ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200 bg-white">
+
+            {/* TABLE BODY */}
+            <tbody className="bg-white divide-y divide-gray-100">
               {providers.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-4 text-center text-gray-500">No providers found.</td>
+                  <td
+                    colSpan={5}
+                    className="px-6 py-6 text-center text-gray-500"
+                  >
+                    No providers found.
+                  </td>
                 </tr>
               ) : (
-                providers.map((provider) => (
-                  <tr key={provider.id}>
-                    <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-gray-900">{provider.kitchenName}</td>
-                    <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">{provider.providerFullName}</td>
-                    <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">{provider.city}</td>
-                    <td className="whitespace-nowrap px-6 py-4 text-sm">
-                      {/* --- UPDATED Status Tag --- */}
-                      <span className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${
-                        provider.status === 'approved' ? 'bg-green-100 text-green-800' :
-                        provider.status === 'suspended' ? 'bg-yellow-100 text-yellow-800' :
-                        provider.status === 'deactivated' ? 'bg-red-100 text-red-800' : // Deactivated style
-                        'bg-gray-100 text-gray-800'
-                      }`}>
-                        {provider.status}
+                providers.map((pr) => (
+                  <tr
+                    key={pr.id}
+                    className="hover:bg-gray-50 transition-colors duration-150"
+                  >
+                    <td className="px-6 py-4 text-sm font-medium text-gray-900">
+                      {pr.kitchenName}
+                    </td>
+
+                    <td className="px-6 py-4 text-sm text-gray-600">
+                      {pr.providerFullName}
+                    </td>
+
+                    <td className="px-6 py-4 text-sm text-gray-600">
+                      {pr.city}
+                    </td>
+
+                    {/* STATUS BADGE */}
+                    <td className="px-6 py-4">
+                      <span
+                        className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                          pr.status === "approved"
+                            ? "bg-green-50 text-green-700"
+                            : pr.status === "suspended"
+                            ? "bg-amber-50 text-amber-700"
+                            : pr.status === "deactivated"
+                            ? "bg-red-50 text-red-700"
+                            : "bg-gray-100 text-gray-800"
+                        }`}
+                      >
+                        {pr.status}
                       </span>
                     </td>
-                    <td className="whitespace-nowrap px-6 py-4 text-sm font-medium">
-                      {/* --- UPDATED Conditional Action Buttons --- */}
-                      {provider.status === 'approved' && (
+
+                    {/* ACTION BUTTONS */}
+                    <td className="px-6 py-4 text-sm font-medium space-x-2">
+
+                      {/* APPROVED → Suspend or Deactivate */}
+                      {pr.status === "approved" && (
                         <>
                           <button
-                            onClick={() => handleStatusChange(provider.id, 'suspended')}
-                            className="mr-3 rounded bg-yellow-100 px-3 py-1 text-xs font-semibold text-yellow-800 hover:bg-yellow-200"
+                            onClick={() => handleStatusChange(pr.id, "suspended")}
+                            className="rounded-lg bg-amber-50 text-amber-700 px-3 py-1 text-xs font-semibold hover:bg-amber-100 transition"
                           >
                             Suspend
                           </button>
+
                           <button
-                            onClick={() => handleStatusChange(provider.id, 'deactivated')}
-                            className="rounded bg-red-100 px-3 py-1 text-xs font-semibold text-red-800 hover:bg-red-200"
+                            onClick={() => handleStatusChange(pr.id, "deactivated")}
+                            className="rounded-lg bg-red-50 text-red-700 px-3 py-1 text-xs font-semibold hover:bg-red-100 transition"
                           >
                             Deactivate
                           </button>
                         </>
                       )}
-                      {provider.status === 'suspended' && (
+
+                      {/* SUSPENDED → Reactivate */}
+                      {pr.status === "suspended" && (
                         <button
-                          onClick={() => handleStatusChange(provider.id, 'approved')}
-                          className="rounded bg-green-100 px-3 py-1 text-xs font-semibold text-green-800 hover:bg-green-200"
+                          onClick={() => handleStatusChange(pr.id, "approved")}
+                          className="rounded-lg bg-green-50 text-green-700 px-3 py-1 text-xs font-semibold hover:bg-green-100 transition"
                         >
                           Reactivate
                         </button>
                       )}
-                      {provider.status === 'deactivated' && (
-                        <span className="text-xs font-medium text-red-700">No Actions</span>
+
+                      {/* DEACTIVATED → No actions */}
+                      {pr.status === "deactivated" && (
+                        <span className="text-xs text-red-700 font-medium">
+                          No Actions
+                        </span>
                       )}
                     </td>
                   </tr>

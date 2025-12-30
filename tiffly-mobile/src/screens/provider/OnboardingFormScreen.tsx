@@ -1,14 +1,6 @@
-// src/screens/provider/OnboardingFormScreen.tsx
-
 import React, { useState } from "react";
 import { View, StyleSheet, ScrollView, Image } from "react-native";
-import {
-  Button,
-  Text,
-  TextInput,
-  ActivityIndicator,
-  useTheme,
-} from "react-native-paper";
+import { Button, Text, TextInput, useTheme } from "react-native-paper";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -20,11 +12,11 @@ import {
   ProviderProfileData,
 } from "../../services/userService";
 
-// 1. --- DEFINE THE VALIDATION SCHEMA ---
+// Validation Schema
 const profileSchema = z.object({
   providerFullName: z.string().min(3, "Full name is required"),
   kitchenName: z.string().min(3, "Kitchen name is required"),
-  kitchenImageUrl: z.string().url("Image is required"), // We'll validate this
+  kitchenImageUrl: z.string().url("Image is required"),
   phoneNumber: z.string().min(10, "A valid phone number is required"),
   kitchenDescription: z
     .string()
@@ -38,16 +30,16 @@ const profileSchema = z.object({
 });
 
 type Props = {
-  onProfileSubmit: () => void; // This is the refetch function
+  onProfileSubmit: () => void;
 };
 
 export const OnboardingFormScreen = ({ onProfileSubmit }: Props) => {
-  const { user } = useAuth(); // To get the user's ID
+  const { user } = useAuth();
   const theme = useTheme();
+
   const [loading, setLoading] = useState(false);
   const [imageUploading, setImageUploading] = useState(false);
 
-  // 2. --- SETUP REACT HOOK FORM ---
   const {
     control,
     handleSubmit,
@@ -71,41 +63,35 @@ export const OnboardingFormScreen = ({ onProfileSubmit }: Props) => {
     },
   });
 
-  // Watch the image URL field to show a preview
   const imageUrl = watch("kitchenImageUrl");
 
-  // 3. --- IMAGE UPLOAD HANDLER ---
+  // Upload Image Handler
   const onImageUpload = async () => {
     setImageUploading(true);
-    const url = await uploadImageToCloudinary(); // Our function from imageService
+    const url = await uploadImageToCloudinary();
     setImageUploading(false);
 
     if (url) {
-      // Set the value in the form and trigger validation
       setValue("kitchenImageUrl", url, { shouldValidate: true });
     }
   };
 
-  // 4. --- FORM SUBMIT HANDLER ---
+  // Form Submit Handler
   const onSubmit = async (data: ProviderProfileData) => {
     if (!user) return;
-    setLoading(true);
 
+    setLoading(true);
     const { success } = await updateProviderProfile(user.uid, data);
 
     setLoading(false);
+
     if (success) {
-      // 3. CALL THE REFETCH FUNCTION!
       onProfileSubmit();
-      // This refetches the user's role, AppNavigator re-renders,
-      // sees the status is 'pending_approval', and automatically
-      // shows the new PendingProviderTabNavigator.
     } else {
       alert("Error: Could not submit your profile. Please try again.");
     }
   };
 
-  // Helper for Picker styling
   const pickerWrapperStyle = {
     borderWidth: 1,
     borderColor: errors.cuisineType ? theme.colors.error : "gray",
@@ -122,8 +108,7 @@ export const OnboardingFormScreen = ({ onProfileSubmit }: Props) => {
         This information will be reviewed by our team before approval.
       </Text>
 
-      {/* --- RENDER ALL 11 FORM FIELDS --- */}
-
+      {/* Full Name */}
       <Controller
         name="providerFullName"
         control={control}
@@ -142,6 +127,7 @@ export const OnboardingFormScreen = ({ onProfileSubmit }: Props) => {
         <Text style={styles.errorText}>{errors.providerFullName.message}</Text>
       )}
 
+      {/* Kitchen Name */}
       <Controller
         name="kitchenName"
         control={control}
@@ -160,7 +146,7 @@ export const OnboardingFormScreen = ({ onProfileSubmit }: Props) => {
         <Text style={styles.errorText}>{errors.kitchenName.message}</Text>
       )}
 
-      {/* --- Image Uploader --- */}
+      {/* Image Upload */}
       <Button
         icon="camera"
         mode="outlined"
@@ -171,22 +157,25 @@ export const OnboardingFormScreen = ({ onProfileSubmit }: Props) => {
       >
         {imageUrl ? "Change Kitchen Photo" : "Upload Kitchen Photo"}
       </Button>
+
       {imageUrl && (
         <Image source={{ uri: imageUrl }} style={styles.imagePreview} />
       )}
+
       {errors.kitchenImageUrl && (
         <Text style={styles.errorText}>{errors.kitchenImageUrl.message}</Text>
       )}
 
+      {/* Phone Number */}
       <Controller
         name="phoneNumber"
         control={control}
-        render={({ field: { onChange, onBlur, value } }) => (
+        render={({ field }) => (
           <TextInput
             label="Contact Phone Number (Private)"
-            value={value}
-            onBlur={onBlur}
-            onChangeText={onChange}
+            value={field.value}
+            onBlur={field.onBlur}
+            onChangeText={field.onChange}
             error={!!errors.phoneNumber}
             keyboardType="phone-pad"
             style={styles.input}
@@ -197,15 +186,16 @@ export const OnboardingFormScreen = ({ onProfileSubmit }: Props) => {
         <Text style={styles.errorText}>{errors.phoneNumber.message}</Text>
       )}
 
+      {/* Description */}
       <Controller
         name="kitchenDescription"
         control={control}
-        render={({ field: { onChange, onBlur, value } }) => (
+        render={({ field }) => (
           <TextInput
             label="Kitchen Description (Public)"
-            value={value}
-            onBlur={onBlur}
-            onChangeText={onChange}
+            value={field.value}
+            onBlur={field.onBlur}
+            onChangeText={field.onChange}
             error={!!errors.kitchenDescription}
             multiline
             numberOfLines={3}
@@ -219,15 +209,16 @@ export const OnboardingFormScreen = ({ onProfileSubmit }: Props) => {
         </Text>
       )}
 
+      {/* Address */}
       <Controller
         name="streetAddress"
         control={control}
-        render={({ field: { onChange, onBlur, value } }) => (
+        render={({ field }) => (
           <TextInput
             label="Street Address"
-            value={value}
-            onBlur={onBlur}
-            onChangeText={onChange}
+            value={field.value}
+            onBlur={field.onBlur}
+            onChangeText={field.onChange}
             error={!!errors.streetAddress}
             style={styles.input}
           />
@@ -237,15 +228,16 @@ export const OnboardingFormScreen = ({ onProfileSubmit }: Props) => {
         <Text style={styles.errorText}>{errors.streetAddress.message}</Text>
       )}
 
+      {/* City */}
       <Controller
         name="city"
         control={control}
-        render={({ field: { onChange, onBlur, value } }) => (
+        render={({ field }) => (
           <TextInput
             label="City"
-            value={value}
-            onBlur={onBlur}
-            onChangeText={onChange}
+            value={field.value}
+            onBlur={field.onBlur}
+            onChangeText={field.onChange}
             error={!!errors.city}
             style={styles.input}
           />
@@ -255,15 +247,16 @@ export const OnboardingFormScreen = ({ onProfileSubmit }: Props) => {
         <Text style={styles.errorText}>{errors.city.message}</Text>
       )}
 
+      {/* Pincode */}
       <Controller
         name="pincode"
         control={control}
-        render={({ field: { onChange, onBlur, value } }) => (
+        render={({ field }) => (
           <TextInput
             label="Pincode"
-            value={value}
-            onBlur={onBlur}
-            onChangeText={onChange}
+            value={field.value}
+            onBlur={field.onBlur}
+            onChangeText={field.onChange}
             error={!!errors.pincode}
             keyboardType="number-pad"
             maxLength={6}
@@ -275,17 +268,13 @@ export const OnboardingFormScreen = ({ onProfileSubmit }: Props) => {
         <Text style={styles.errorText}>{errors.pincode.message}</Text>
       )}
 
-      {/* --- Cuisine Type Picker --- */}
+      {/* Cuisine Type */}
       <Controller
         name="cuisineType"
         control={control}
-        render={({ field: { onChange, value } }) => (
+        render={({ field }) => (
           <View style={pickerWrapperStyle}>
-            <Picker
-              selectedValue={value}
-              onValueChange={onChange}
-              style={{ height: 50 }}
-            >
+            <Picker selectedValue={field.value} onValueChange={field.onChange}>
               <Picker.Item label="Select Cuisine Type..." value="" />
               <Picker.Item label="North Indian" value="North Indian" />
               <Picker.Item label="South Indian" value="South Indian" />
@@ -301,17 +290,13 @@ export const OnboardingFormScreen = ({ onProfileSubmit }: Props) => {
         <Text style={styles.errorText}>{errors.cuisineType.message}</Text>
       )}
 
-      {/* --- Max Capacity Picker --- */}
+      {/* Max Capacity */}
       <Controller
         name="maxCapacity"
         control={control}
-        render={({ field: { onChange, value } }) => (
+        render={({ field }) => (
           <View style={pickerWrapperStyle}>
-            <Picker
-              selectedValue={value}
-              onValueChange={onChange}
-              style={{ height: 50 }}
-            >
+            <Picker selectedValue={field.value} onValueChange={field.onChange}>
               <Picker.Item label="Select Max Capacity..." value="" />
               <Picker.Item label="10-20 customers" value="10-20" />
               <Picker.Item label="20-50 customers" value="20-50" />
@@ -324,27 +309,23 @@ export const OnboardingFormScreen = ({ onProfileSubmit }: Props) => {
         <Text style={styles.errorText}>{errors.maxCapacity.message}</Text>
       )}
 
+      {/* FSSAI Optional */}
       <Controller
         name="fssaiLicenseNumber"
         control={control}
-        render={({ field: { onChange, onBlur, value } }) => (
+        render={({ field }) => (
           <TextInput
             label="FSSAI License (Optional)"
-            value={value}
-            onBlur={onBlur}
-            onChangeText={onChange}
+            value={field.value}
+            onBlur={field.onBlur}
+            onChangeText={field.onChange}
             error={!!errors.fssaiLicenseNumber}
             style={styles.input}
           />
         )}
       />
-      {errors.fssaiLicenseNumber && (
-        <Text style={styles.errorText}>
-          {errors.fssaiLicenseNumber.message}
-        </Text>
-      )}
 
-      {/* --- SUBMIT BUTTON --- */}
+      {/* Submit */}
       <Button
         mode="contained"
         onPress={handleSubmit(onSubmit)}
@@ -359,13 +340,7 @@ export const OnboardingFormScreen = ({ onProfileSubmit }: Props) => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 20,
-    backgroundColor: "#fafafa",
-  },
-
-  /* ------ HEADINGS ------ */
+  container: { flex: 1, padding: 20, backgroundColor: "#fafafa" },
   title: {
     textAlign: "center",
     fontSize: 24,
@@ -379,21 +354,12 @@ const styles = StyleSheet.create({
     color: "#666",
     marginBottom: 22,
   },
-
-  /* ------ INPUT FIELDS ------ */
   input: {
     marginBottom: 12,
-    backgroundColor: "#ffffff",
+    backgroundColor: "#fff",
     borderRadius: 10,
     elevation: 1,
-
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    shadowOffset: { width: 0, height: 2 },
   },
-
-  /* ------ IMAGE PREVIEW ------ */
   imagePreview: {
     width: "100%",
     height: 190,
@@ -402,39 +368,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: "#e53935",
   },
-
-  /* ------ PICKER STYLING ------ */
-  pickerWrapper: {
-    borderWidth: 1.4,
-    borderColor: "#ddd",
-    backgroundColor: "#ffffff",
-    borderRadius: 10,
-    marginBottom: 14,
-    overflow: "hidden",
-
-    elevation: 1,
-    shadowColor: "#000",
-    shadowOpacity: 0.08,
-    shadowRadius: 2,
-    shadowOffset: { width: 0, height: 1 },
-  },
-
-  /* Error version of picker wrapper */
-  pickerError: {
-    borderColor: "#e53935",
-  },
-
-  /* ------ ERROR TEXT ------ */
-  errorText: {
-    color: "#e53935",
-    fontSize: 12,
-    marginLeft: 4,
-    marginTop: -6,
-    marginBottom: 8,
-    fontWeight: "500",
-  },
-
-  /* ------ SUBMIT BUTTON ------ */
+  errorText: { color: "#e53935", fontSize: 12, marginLeft: 4, marginBottom: 8 },
   button: {
     marginTop: 22,
     paddingVertical: 6,
@@ -442,4 +376,3 @@ const styles = StyleSheet.create({
     backgroundColor: "#e53935",
   },
 });
-

@@ -8,7 +8,7 @@ import path from 'path';
 import fs from 'fs';
 // Use CommonJS require syntax for node-fetch@2
 const fetch = require('node-fetch'); 
-const YOUR_IP = '172.23.8.103'; // <--- PASTE YOUR ACTUAL IP HERE
+const YOUR_IP = '10.70.19.103'; // <--- PASTE YOUR ACTUAL IP HERE
 
 dotenv.config();
 

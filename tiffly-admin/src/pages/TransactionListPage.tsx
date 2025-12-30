@@ -1,125 +1,178 @@
 // src/pages/TransactionListPage.tsx
-import { useState, useEffect, useMemo } from 'react'; // Import useMemo
-import { getAllTransactions } from '../services/adminUserService';
-import type { SubscriptionTransactionData } from '../services/adminUserService'; // Use the correct type
-import { format } from 'date-fns';
-import { Timestamp } from 'firebase/firestore';
+import { useState, useEffect, useMemo } from "react";
+import { getAllTransactions } from "../services/adminUserService";
+import type { SubscriptionTransactionData } from "../services/adminUserService";
+import { format } from "date-fns";
+import { Timestamp } from "firebase/firestore";
 
-// Helper to format currency
-const formatCurrency = (amount: number) => {
-  return `₹${amount.toFixed(2)}`;
-};
+// Currency Format
+const formatCurrency = (amount: number) => `₹${amount.toFixed(2)}`;
 
 export const TransactionListPage = () => {
   const [transactions, setTransactions] = useState<SubscriptionTransactionData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Fetch Data
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       setError(null);
-      const { transactions: fetchedTransactions, error: fetchError } = await getAllTransactions();
-      if (fetchError) {
-        setError(fetchError);
-      } else {
-        setTransactions(fetchedTransactions);
-      }
+
+      const { transactions: list, error: fetchErr } = await getAllTransactions();
+      if (fetchErr) setError(fetchErr);
+      else setTransactions(list);
+
       setLoading(false);
     };
+
     fetchData();
   }, []);
 
-  // --- Calculate Total Revenue using useMemo ---
+  // Memoized Total Revenue
   const totalPlatformRevenue = useMemo(() => {
-    return transactions.reduce((acc, sub) => {
-      const price = sub.pricePaid || 0;
-      const commission = price * 0.10; // Calculate 8% commission
-      return acc + commission;
-    }, 0);
-  }, [transactions]); // Recalculate only when transactions change
-  // ------------------------------------------
+    return transactions.reduce((acc, t) => acc + (t.pricePaid || 0) * 0.1, 0);
+  }, [transactions]);
 
-  const formatDate = (timestamp: unknown): string => {
-    if (!timestamp) return 'N/A';
+  // Date Format Helper
+  const formatDate = (ts: any) => {
     try {
       let date: Date;
-      if (timestamp instanceof Timestamp) { date = timestamp.toDate(); }
-      else if (timestamp instanceof Date) { date = timestamp; }
-      else { date = new Date(String(timestamp)); }
-      if (Number.isNaN(date.getTime())) return 'Invalid Date';
-      return format(date, 'MMM d, yyyy');
-    } catch { return 'Invalid Date'; }
+      if (!ts) return "N/A";
+
+      if (ts instanceof Timestamp) date = ts.toDate();
+      else if (ts instanceof Date) date = ts;
+      else date = new Date(String(ts));
+
+      return isNaN(date.getTime()) ? "Invalid Date" : format(date, "MMM d, yyyy");
+    } catch {
+      return "Invalid Date";
+    }
   };
 
   return (
     <div>
-      <h1 className="mb-4 text-2xl font-semibold text-gray-800">All Transactions</h1>
+      {/* Header */}
+      <div className="mb-6">
+        <h1 className="text-2xl font-semibold text-gray-900">All Transactions</h1>
+        <p className="text-sm text-gray-500">Platform revenue and payment breakdown.</p>
+      </div>
 
-      {/* --- Revenue Summary Card --- */}
-      <div className="mb-6 rounded-lg bg-white p-6 shadow">
-        <h2 className="mb-2 text-sm font-medium text-gray-500">Total Platform Revenue (10%)</h2>
+      {/* Revenue Card */}
+      <div className="mb-6 rounded-xl bg-green-50 border border-green-100 p-6 shadow-sm">
+        <h2 className="mb-1 text-sm font-medium text-green-700">
+          Total Platform Revenue (10%)
+        </h2>
+
         {loading ? (
-           <p className="animate-pulse text-gray-400">Loading...</p>
+          <p className="animate-pulse text-gray-400 text-lg">Loading...</p>
         ) : (
-           <p className="text-3xl font-bold text-green-600">
-             {formatCurrency(totalPlatformRevenue)}
-           </p>
+          <p className="text-3xl font-bold text-green-700">
+            {formatCurrency(totalPlatformRevenue)}
+          </p>
         )}
+
         <p className="mt-1 text-xs text-gray-500">
           Based on {transactions.length} total transactions.
         </p>
       </div>
-      {/* --- End Card --- */}
 
+      {/* Loading */}
+      {loading && <p className="text-gray-600 text-sm">Loading transactions...</p>}
 
-      {loading && <p>Loading transactions...</p>}
-      {/* Index error display */}
-      {error?.includes('index') && (
-           <div className="my-4 rounded border border-yellow-400 bg-yellow-100 p-4 text-yellow-700">
-             <p className="font-bold">Action Required:</p>
-             <p>{error}</p>
-             <p className="mt-2">Please create the required Firestore index and refresh.</p>
-           </div>
-       )}
-       {error && !error.includes('index') && <p className="text-red-500">{error}</p>}
+      {/* Firestore Index Error */}
+      {error?.includes("index") && (
+        <div className="my-4 rounded-lg border border-yellow-300 bg-yellow-50 p-4 text-yellow-700 shadow-sm">
+          <strong>Firestore Index Required:</strong>
+          <p>{error}</p>
+        </div>
+      )}
 
+      {/* Other Errors */}
+      {error && !error.includes("index") && (
+        <p className="text-red-500 text-sm">{error}</p>
+      )}
+
+      {/* Table */}
       {!loading && !error && (
-        <div className="overflow-x-auto rounded-lg bg-white shadow">
+        <div className="overflow-x-auto rounded-xl bg-white shadow-sm border border-gray-200">
           <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+
+            {/* TABLE HEADER */}
+            <thead className="bg-gray-50/70">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Date</th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Plan Name</th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Total Paid</th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Platform Revenue (10%)</th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Provider Share (90%)</th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Provider ID</th>
+                {[
+                  "Date",
+                  "Plan Name",
+                  "Total Paid",
+                  "Platform Revenue (10%)",
+                  "Provider Share (90%)",
+                  "Provider ID",
+                ].map((header) => (
+                  <th
+                    key={header}
+                    className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600"
+                  >
+                    {header}
+                  </th>
+                ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200 bg-white">
+
+            {/* TABLE BODY */}
+            <tbody className="bg-white divide-y divide-gray-100">
               {transactions.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-4 text-center text-gray-500">No transactions found.</td>
+                  <td
+                    colSpan={6}
+                    className="px-6 py-6 text-center text-gray-500"
+                  >
+                    No transactions found.
+                  </td>
                 </tr>
               ) : (
-                transactions.map((sub) => {
-                  const totalPaid = sub.pricePaid || 0;
-                  const platformRevenue = totalPaid * 0.10;
-                  const providerShare = totalPaid * 0.90; // Calculate 90%
+                transactions.map((t) => {
+                  const total = t.pricePaid || 0;
+                  const platformRevenue = total * 0.1;
+                  const providerShare = total * 0.9;
+
                   return (
-                    <tr key={sub.id}>
-                      <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">{formatDate(sub.createdAt)}</td>
-                      <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-gray-900">{sub.planName}</td>
-                      <td className="whitespace-nowrap px-6 py-4 text-sm font-semibold text-gray-700">{formatCurrency(totalPaid)}</td>
-                      <td className="whitespace-nowrap px-6 py-4 text-sm font-semibold text-green-600">{formatCurrency(platformRevenue)}</td>
-                      <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">{formatCurrency(providerShare)}</td>
-                       <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500" title={sub.providerId}>{sub.providerId.substring(0, 8)}...</td>
+                    <tr
+                      key={t.id}
+                      className="hover:bg-gray-50 transition-all duration-150"
+                    >
+                      <td className="px-6 py-4 text-sm text-gray-600">
+                        {formatDate(t.createdAt)}
+                      </td>
+
+                      <td className="px-6 py-4 text-sm font-medium text-gray-900">
+                        {t.planName}
+                      </td>
+
+                      <td className="px-6 py-4 text-sm font-semibold text-gray-700">
+                        {formatCurrency(total)}
+                      </td>
+
+                      <td className="px-6 py-4 text-sm font-semibold text-green-700">
+                        {formatCurrency(platformRevenue)}
+                      </td>
+
+                      <td className="px-6 py-4 text-sm text-gray-600">
+                        {formatCurrency(providerShare)}
+                      </td>
+
+                      <td
+                        className="px-6 py-4 text-sm text-gray-500"
+                        title={t.providerId}
+                      >
+                        {t.providerId.substring(0, 8)}...
+                      </td>
                     </tr>
                   );
                 })
               )}
             </tbody>
+
           </table>
         </div>
       )}

@@ -1,74 +1,77 @@
 // src/services/imageService.ts
 
-import * as ImagePicker from 'expo-image-picker';
+import { Alert } from "react-native";
+import * as ImagePicker from "expo-image-picker";
 
-// --- IMPORTANT: UPDATE THESE VALUES ---
-const CLOUD_NAME = 'afshinpathan';
-const UPLOAD_PRESET = 'tiffly_main';
-// ------------------------------------
+// Cloudinary Config
+const CLOUDINARY_CLOUD_NAME = "afshinpathan";
+const CLOUDINARY_UPLOAD_PRESET = "tiffly_main";
+const CLOUDINARY_UPLOAD_URL = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`;
 
-export const uploadImageToCloudinary = async () => {
-  // 1. Ask for permission
-  const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-  if (status !== 'granted') {
-    alert('Sorry, we need camera roll permissions to make this work!');
-    return null;
-  }
+// Upload raw file URI → Cloudinary
+export const uploadImageAsync = async (uri: string): Promise<string | null> => {
+  if (!uri) return null;
 
-  // 2. Launch image picker
-  let result = await ImagePicker.launchImageLibraryAsync({
-    mediaTypes: ImagePicker.MediaTypeOptions.Images,
-    allowsEditing: true,
-    aspect: [4, 3], // Standard aspect ratio for a kitchen photo
-    quality: 0.7,   // Compress image to 70% quality
-  });
-
-  if (result.canceled || !result.assets || !result.assets[0]) {
-    // User cancelled the picker
-    return null;
-  }
-
-  // 3. Prepare the upload
-  const asset = result.assets[0];
-  const data = new FormData();
-  
-  // We need to create a special URI for file upload
-  const uriParts = asset.uri.split('.');
+  const uriParts = uri.split(".");
   const fileType = uriParts[uriParts.length - 1];
-  
-  const file = {
-    uri: asset.uri,
-    type: `image/${fileType}`,
-    name: `upload.${fileType}`,
-  } as any; // Use 'as any' to avoid FormData type issues
-  
-  data.append('file', file);
-  data.append('upload_preset', UPLOAD_PRESET);
-  data.append('cloud_name', CLOUD_NAME);
 
-  const url = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`;
+  const formData = new FormData();
+  formData.append("file", {
+    uri,
+    name: `upload.${fileType}`,
+    type: `image/${fileType}`,
+  } as any);
+
+  formData.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
+  formData.append("cloud_name", CLOUDINARY_CLOUD_NAME);
 
   try {
-    // 4. Upload the image
-    const response = await fetch(url, {
-      method: 'POST',
-      body: data,
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
+    const response = await fetch(CLOUDINARY_UPLOAD_URL, {
+      method: "POST",
+      body: formData,
     });
 
-    const jsonResponse = await response.json();
-    
-    if (jsonResponse.secure_url) {
-      // 5. Return the secure URL
-      return jsonResponse.secure_url as string;
-    } else {
-      console.error('Cloudinary upload error:', jsonResponse);
+    if (!response.ok) {
+      const err = await response.json();
+      console.error("Cloudinary Error:", err);
       return null;
     }
+
+    const data = await response.json();
+    return data.secure_url || null;
+  } catch (error) {
+    console.error("Upload exception:", error);
+    Alert.alert("Upload Failed", "Could not upload image.");
+    return null;
+  }
+};
+
+// Pick Image → Upload to Cloudinary
+export const uploadImageToCloudinary = async (): Promise<string | null> => {
+  try {
+    // Ask permission
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert("Permission Needed", "Allow gallery access to upload images.");
+      return null;
+    }
+
+    // Open Picker
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      quality: 0.7,
+    });
+
+    if (result.canceled) return null;
+
+    const uri = result.assets[0].uri;
+    if (!uri) return null;
+
+    // Upload to Cloudinary
+    return await uploadImageAsync(uri);
   } catch (err) {
-    console.error('Error uploading image:', err);
+    console.error("Picker/Upload error:", err);
     return null;
   }
 };

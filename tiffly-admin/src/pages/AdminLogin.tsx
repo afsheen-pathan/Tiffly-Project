@@ -1,53 +1,63 @@
 // src/pages/AdminLogin.tsx
-import { useState } from 'react'; // Keep useState for local error
-import { useForm, Controller } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { useAuth } from '../hooks/useAuth';import type { SignInData } from '../services/adminAuthService';
-// Validation schema remains the same
+
+import { useState } from "react";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { useAuth } from "../hooks/useAuth";
+import type { SignInData } from "../services/adminAuthService";
+
+// Validation Schema
 const loginSchema = z.object({
-  email: z.string().email('Invalid email address'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
+  email: z.string().email("Invalid email address"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
 });
 
 export const AdminLogin = () => {
-  // Get signIn and loading state from the context
   const { signIn, loading } = useAuth();
-  // Keep local error state for UI feedback
   const [error, setError] = useState<string | null>(null);
 
-  const { control, handleSubmit, formState: { errors } } = useForm<SignInData>({
+  const {
+    control,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<SignInData>({
     resolver: zodResolver(loginSchema),
-    defaultValues: { email: '', password: '' },
+    defaultValues: { email: "", password: "" },
   });
 
-  // Updated submit handler
   const onSubmit = async (data: SignInData) => {
-    setError(null); // Clear previous errors
-    const result = await signIn(data); // Call signIn from context
+    setError(null);
+    const result = await signIn(data);
+
     if (result.error) {
-      // Display specific error messages
-      if (result.error === 'Not authorized as admin.') {
-        setError('Error: You do not have admin privileges.');
-      } else {
-        setError('Error: Invalid email or password.');
-      }
+      setError(
+        result.error === "Not authorized as admin."
+          ? "You do not have admin privileges."
+          : "Invalid email or password."
+      );
     }
-    // No setLoading needed, context handles it.
-    // Navigation will happen automatically via App.tsx if successful.
   };
 
   return (
-    <div className="flex h-screen w-full items-center justify-center bg-gray-100">
-      <div className="w-full max-w-md rounded-lg bg-white p-8 shadow-md">
-        <h1 className="mb-6 text-center text-2xl font-bold text-gray-800">
-          Tiffly Admin Login
+    <div className="flex h-screen w-full items-center justify-center bg-white px-4">
+
+      <div className="w-full max-w-md rounded-xl bg-white p-10 shadow-lg border border-gray-200">
+
+        {/* Title */}
+        <h1 className="text-center text-3xl font-bold text-gray-900 mb-2">
+          Tiffly Admin
         </h1>
 
+        <p className="text-center text-sm text-gray-500 mb-6">
+          Login to continue
+        </p>
+
         <form onSubmit={handleSubmit(onSubmit)}>
-          {/* Email Input */}
+
+          {/* EMAIL */}
           <div className="mb-4">
-            <label className="mb-2 block text-sm font-medium text-gray-700" htmlFor="email">
+            <label className="block mb-1 text-sm font-medium text-gray-800">
               Email
             </label>
             <Controller
@@ -56,21 +66,24 @@ export const AdminLogin = () => {
               render={({ field }) => (
                 <input
                   {...field}
-                  id="email"
                   type="email"
-                  className={`w-full rounded-md border px-3 py-2 text-gray-700 focus:outline-none focus:ring-1 ${
-                    errors.email ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'
+                  className={`w-full rounded-lg border px-3 py-2 text-gray-700 focus:outline-none focus:ring-2 transition ${
+                    errors.email
+                      ? "border-red-400 focus:ring-red-300"
+                      : "border-gray-300 focus:ring-purple-300"
                   }`}
-                  autoComplete="email"
+                  placeholder="admin@example.com"
                 />
               )}
             />
-            {errors.email && <p className="mt-1 text-xs text-red-500">{errors.email.message}</p>}
+            {errors.email && (
+              <p className="text-xs text-red-500 mt-1">{errors.email.message}</p>
+            )}
           </div>
 
-          {/* Password Input */}
-          <div className="mb-6">
-            <label className="mb-2 block text-sm font-medium text-gray-700" htmlFor="password">
+          {/* PASSWORD */}
+          <div className="mb-5">
+            <label className="block mb-1 text-sm font-medium text-gray-800">
               Password
             </label>
             <Controller
@@ -79,30 +92,42 @@ export const AdminLogin = () => {
               render={({ field }) => (
                 <input
                   {...field}
-                  id="password"
                   type="password"
-                  className={`w-full rounded-md border px-3 py-2 text-gray-700 focus:outline-none focus:ring-1 ${
-                    errors.password ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'
+                  className={`w-full rounded-lg border px-3 py-2 text-gray-700 focus:outline-none focus:ring-2 transition ${
+                    errors.password
+                      ? "border-red-400 focus:ring-red-300"
+                      : "border-gray-300 focus:ring-purple-300"
                   }`}
-                  autoComplete="current-password"
+                  placeholder="••••••••"
                 />
               )}
             />
-            {errors.password && <p className="mt-1 text-xs text-red-500">{errors.password.message}</p>}
+            {errors.password && (
+              <p className="text-xs text-red-500 mt-1">{errors.password.message}</p>
+            )}
           </div>
 
-          {/* Display general error */}
-          {error && <p className="mb-4 text-center text-sm text-red-500">{error}</p>}
+          {/* GENERAL ERROR */}
+          {error && (
+            <p className="mb-4 text-center text-sm text-red-500 bg-red-50 py-2 rounded-lg border border-red-200">
+              {error}
+            </p>
+          )}
 
-          {/* Submit Button - uses loading from context */}
+          {/* LOGIN BUTTON — NEW THEME COLOR */}
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-md bg-blue-600 px-4 py-2 font-semibold text-white transition duration-200 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            className="w-full rounded-lg bg-[#8884d8] py-3 font-semibold text-white shadow-md hover:bg-[#726cc7] transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {loading ? 'Logging in...' : 'Login'}
+            {loading ? "Logging in..." : "Login"}
           </button>
         </form>
+
+        {/* Footer */}
+        <p className="mt-6 text-center text-xs text-gray-400">
+          © {new Date().getFullYear()} Tiffly Admin Panel
+        </p>
       </div>
     </div>
   );
