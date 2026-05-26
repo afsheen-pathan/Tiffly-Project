@@ -15,6 +15,101 @@ Tiffly is a full-stack marketplace application connecting customers with local h
 
 ---
 
+## 📸 Screenshots
+
+## 🍳 Provider App Screenshots
+
+<p align="center">
+  <img src="./screenshots/provider/home.jpg" width="220"/>
+  <img src="./screenshots/provider/login.jpg" width="220"/>
+  <img src="./screenshots/provider/register.jpg" width="220"/>
+</p>
+
+<p align="center">
+  <img src="./screenshots/provider/complete-profile.jpg" width="220"/>
+  <img src="./screenshots/provider/provider-application.jpg" width="220"/>
+  <img src="./screenshots/provider/feature-locked.jpg" width="220"/>
+</p>
+
+<p align="center">
+  <img src="./screenshots/provider/weekly-menu.jpg" width="220"/>
+  <img src="./screenshots/provider/menu.jpg" width="220"/>
+  <img src="./screenshots/provider/new-plan.jpg" width="220"/>
+</p>
+
+<p align="center">
+  <img src="./screenshots/provider/subscription-plan.jpg" width="220"/>
+  <img src="./screenshots/provider/daily-list.jpg" width="220"/>
+  <img src="./screenshots/provider/report-leftover.jpg" width="220"/>
+</p>
+
+<p align="center">
+    <img src="./screenshots/provider/provider-profile.jpg" width="220"/>
+  <img src="./screenshots/provider/earning.jpg" width="220"/>
+  <img src="./screenshots/provider/account-settings.jpg" width="220"/>
+</p>
+
+---
+
+## 👤 Citizen App Screenshots
+
+<p align="center">
+  <img src="./screenshots/citizen/1.jpg" width="220"/>
+  <img src="./screenshots/citizen/2.jpg" width="220"/>
+  <img src="./screenshots/citizen/3.jpg" width="220"/>
+</p>
+
+<p align="center">
+  <img src="./screenshots/citizen/4.jpg" width="220"/>
+  <img src="./screenshots/citizen/5.jpg" width="220"/>
+  <img src="./screenshots/citizen/6.jpg" width="220"/>
+</p>
+
+<p align="center">
+  <img src="./screenshots/citizen/7.jpg" width="220"/>
+  <img src="./screenshots/citizen/8.jpg" width="220"/>
+  <img src="./screenshots/citizen/9.jpg" width="220"/>
+</p>
+
+<p align="center">
+  <img src="./screenshots/citizen/10.jpg" width="220"/>
+  <img src="./screenshots/citizen/11.jpg" width="220"/>
+  <img src="./screenshots/citizen/12.jpg" width="220"/>
+</p>
+
+<p align="center">
+  <img src="./screenshots/citizen/13.jpg" width="220"/>
+  <img src="./screenshots/citizen/14.jpg" width="220"/>
+  <img src="./screenshots/citizen/15.jpg" width="220"/>
+</p>
+
+---
+
+## 🛠️ Admin Panel Screenshots
+
+<p align="center">
+  <img src="./screenshots/admin/1.jpg" width="300"/>
+  <img src="./screenshots/admin/2.jpg" width="300"/>
+</p>
+
+<p align="center">
+  <img src="./screenshots/admin/3.jpg" width="300"/>
+  <img src="./screenshots/admin/4.jpg" width="300"/>
+</p>
+
+<p align="center">
+  <img src="./screenshots/admin/5.jpg" width="300"/>
+  <img src="./screenshots/admin/6.jpg" width="300"/>
+</p>
+
+<p align="center">
+  <img src="./screenshots/admin/7.jpg" width="300"/>
+  <img src="./screenshots/admin/8.jpg" width="300"/>
+</p>
+
+
+
+
 ## 🛠️ Tech Stack
 
 * **Frontend (Mobile):** React Native, Expo, TypeScript, React Native Paper, React Navigation
